@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("AzureWebRole.MessageProcessor.Ninject")]
-[assembly: AssemblyDescription("")]
+
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+
 [assembly: AssemblyProduct("AzureWebRole.MessageProcessor.Ninject")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
@@ -34,3 +34,6 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0")]
+[assembly: AssemblyCompany("S-Innovations v/Poul K. Sørensen")]
+[assembly: AssemblyDescription("The Ninject MessageHandler Resolver library of Azure Web Role Message Processor, a plugable queue message handler system.")]
