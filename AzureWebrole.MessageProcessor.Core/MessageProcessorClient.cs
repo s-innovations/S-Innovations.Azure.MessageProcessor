@@ -59,9 +59,8 @@ namespace AzureWebrole.MessageProcessor.Core
         public Task InitializePluginAsync()
         {
             Trace.WriteLine("Starting MessageProcessorClient");
-            Runner = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
             source = new TaskCompletionSource<int>();
-
+            Runner = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
             return source.Task;
 
         }
