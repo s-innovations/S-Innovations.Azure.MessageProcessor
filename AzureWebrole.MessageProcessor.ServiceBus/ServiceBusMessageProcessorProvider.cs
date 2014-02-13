@@ -46,10 +46,10 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
                 {
                     namespaceManager.CreateTopic(this.options.TopicDescription);
                 }
-                if (!namespaceManager.SubscriptionExists(this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name))
-                {
-                    namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
-                }
+                //if (!namespaceManager.SubscriptionExists(this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name))
+                //{
+                //    namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
+                //}
 
                 return TopicClient.CreateFromConnectionString(connectionString, options.TopicDescription.Path);
             });
