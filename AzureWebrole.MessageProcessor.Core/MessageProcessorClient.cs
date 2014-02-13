@@ -16,7 +16,7 @@ namespace AzureWebrole.MessageProcessor.Core
     }
     public interface MessageProcessorClientProvider<MessageType> : MessageProcessorClientProvider<MessageProcessorProviderOptions<MessageType>, MessageType>
     {
-        void StartListening();
+        void StartListening(Func<MessageType,Task> OnMessageAsync);
         Task SendMessageAsync(MessageType message);
         Task SendMessagesAsync(IEnumerable<MessageType> message);
 
@@ -77,7 +77,7 @@ namespace AzureWebrole.MessageProcessor.Core
             try
             {
 
-                _provider.StartListening();
+                _provider.StartListening(OnMessageAsync);
 
                 if (source != null)
                 {

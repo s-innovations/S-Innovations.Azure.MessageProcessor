@@ -17,7 +17,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
         public TopicDescription TopicDescription { get; set; }
         public SubscriptionDescription SubscriptionDescription { get; set; }
         public OnMessageOptions MessageOptions { get; set; }
-        public Func<BrokeredMessage, Task> OnMessage { get; set; }
+        //public Func<BrokeredMessage, Task> OnMessage { get; set; }
         public int MaxMessageRetries
         {
             get;
@@ -54,7 +54,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
                 return TopicClient.CreateFromConnectionString(connectionString, options.TopicDescription.Path);
             });
         }
-        public void StartListening()
+        public void StartListening(Func<BrokeredMessage,Task> OnMessageAsync)
         {
 
             string connectionString = this.options.ConnectionString;
@@ -77,7 +77,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
 
             this.options.MessageOptions.ExceptionReceived += options_ExceptionReceived;
 
-            SubscriptionClient.OnMessageAsync(this.options.OnMessage, this.options.MessageOptions);
+            SubscriptionClient.OnMessageAsync(OnMessageAsync, this.options.MessageOptions);
 
         }
 
