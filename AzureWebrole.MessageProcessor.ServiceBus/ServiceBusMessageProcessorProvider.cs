@@ -4,81 +4,102 @@ using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
-using System.Text;
+using System.Linq;
 using System.Threading.Tasks;
 
-namespace AzureWebrole.MessageProcessor.ServiceBus
+namespace AzureWebRole.MessageProcessor.ServiceBus
 {
-    public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<BrokeredMessage>
-    {
-        public string ConnectionString { get; set; }
-        public TopicDescription TopicDescription { get; set; }
-        public SubscriptionDescription SubscriptionDescription { get; set; }
-        public int MaxConcurrentProcesses { get; set; }
-        //public Func<BrokeredMessage, Task> OnMessage { get; set; }
-        public int MaxMessageRetries
-        {
-            get;
-            set;
-        }
-    }
+
     public class ServiceBusMessageProcessorProvider : IMessageProcessorClientProvider<BrokeredMessage>
     {
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
 
-        private SubscriptionClient SubscriptionClient;
+        private MessageClientEntity Client;
         private Lazy<TopicClient> LazyTopicClient;
+        private Lazy<QueueClient> LazyQueueClient;
+
+        public bool SupportTopic { get { return options.TopicDescription != null; } }
+        public bool SupportQueue { get { return options.QueueDescription != null; } }
+        public bool SupportSubscription { get { return options.SubscriptionDescription != null; } }
+
         public ServiceBusMessageProcessorProvider(ServiceBusMessageProcessorProviderOptions options)
         {
             this.options = options;
-            LazyTopicClient = new Lazy<TopicClient>(() =>
-            {
 
-                string connectionString = this.options.ConnectionString;
-
-                var namespaceManager =
-                    NamespaceManager.CreateFromConnectionString(connectionString);
-
-                if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
+            if (SupportTopic)
+                LazyTopicClient = new Lazy<TopicClient>(() =>
                 {
-                    namespaceManager.CreateTopic(this.options.TopicDescription);
-                }
-                //if (!namespaceManager.SubscriptionExists(this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name))
-                //{
-                //    namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
-                //}
 
-                return TopicClient.CreateFromConnectionString(connectionString, options.TopicDescription.Path);
-            });
+                    var namespaceManager =
+                        NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+
+                    if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
+                    {
+                        namespaceManager.CreateTopic(this.options.TopicDescription);
+                    }
+
+                    return TopicClient.CreateFromConnectionString(this.options.ConnectionString, options.TopicDescription.Path);
+                });
+            if (SupportQueue)
+                LazyQueueClient = new Lazy<QueueClient>(() =>
+                {
+                    var namespaceManager =
+                       NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+
+                    if (!namespaceManager.QueueExists(this.options.QueueDescription.Path))
+                    {
+                        namespaceManager.CreateQueue(this.options.QueueDescription);
+                    }
+
+                    return QueueClient.CreateFromConnectionString(this.options.ConnectionString, options.TopicDescription.Path);
+
+                });
         }
-        public void StartListening(Func<BrokeredMessage,Task> OnMessageAsync)
+        public void StartListening(Func<BrokeredMessage, Task> OnMessageAsync)
         {
 
             string connectionString = this.options.ConnectionString;
 
             var namespaceManager =
                 NamespaceManager.CreateFromConnectionString(connectionString);
+            var tasks = new List<Task>();
 
-            if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
+            if (SupportTopic && !namespaceManager.TopicExists(this.options.TopicDescription.Path))
             {
-                namespaceManager.CreateTopic(this.options.TopicDescription);
-            }
-            if (!namespaceManager.SubscriptionExists(this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name))
-            {
-                namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
+                tasks.Add(namespaceManager.CreateTopicAsync(this.options.TopicDescription));
             }
 
+            if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name))
+            {
+                tasks.Add(namespaceManager.CreateSubscriptionAsync(this.options.SubscriptionDescription));
+            }
 
-            SubscriptionClient = SubscriptionClient.CreateFromConnectionString
-                (connectionString, this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name);
+            Task.WaitAll(tasks.ToArray());
+
 
             var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
-            SubscriptionClient.OnMessageAsync(OnMessageAsync, messageOptions);
+            if (SupportSubscription && SupportTopic)
+            {
+                var client = SubscriptionClient.CreateFromConnectionString
+                  (connectionString, this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name);
+
+                client.OnMessageAsync(OnMessageAsync, messageOptions);
+                Client = client;
+            }
+            else if (SupportQueue)
+            {
+                var client = LazyQueueClient.Value;
+                client.OnMessageAsync(OnMessageAsync, messageOptions);
+                Client = client;
+            }
+            else
+            {
+                throw new Exception("No listening client was started. Configure eitehr a queue or subscription client to start");
+            }
 
         }
 
@@ -101,7 +122,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
         }
         public BrokeredMessage ToMessage<T>(T message) where T : BaseMessage
         {
-            var brokeredMessage= new BrokeredMessage(message);
+            var brokeredMessage = new BrokeredMessage(message);
             brokeredMessage.Properties["messageType"] = message.GetType().AssemblyQualifiedName;
             return brokeredMessage;
         }
@@ -113,7 +134,8 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
 
         public void Dispose()
         {
-            SubscriptionClient.Close();
+            if (Client != null) ;
+            Client.Close();
         }
 
 
@@ -134,6 +156,16 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
             return LazyTopicClient.Value.SendBatchAsync(messages);
         }
 
+        public Task SendMessageAsync<T>(T message) where T : BaseMessage
+        {
+            var brokeredMessage = new BrokeredMessage(message);
+            brokeredMessage.Properties["messageType"] = message.GetType().AssemblyQualifiedName;
+            return SendMessageAsync(brokeredMessage);
+        }
+        public Task SendMessagesAsync<T>(IEnumerable<T> messages) where T : BaseMessage
+        {
+            return SendMessagesAsync(messages.Select(ToMessage));
+        }
 
         public int GetDeliveryCount(BrokeredMessage message)
         {
