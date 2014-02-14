@@ -20,7 +20,7 @@ namespace AzureWebRole.MessageProcessor.Ninject
         }
         public object GetHandler(Type constructed)
         {
-            throw new NotImplementedException();
+            return NinjectKernel.Get(constructed);
         }
 
         private void ConfigureNinject(IEnumerable<Assembly> assemblies)

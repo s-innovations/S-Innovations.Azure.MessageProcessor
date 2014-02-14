@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace AzureWebRole.MessageProcessor.Unity
 {
+    /// <summary>
+    /// NOT TESTED
+    /// </summary>
     public class UnityHandlerResolver : MessageHandlerResolver
     {
         private IUnityContainer Container;
@@ -19,20 +22,26 @@ namespace AzureWebRole.MessageProcessor.Unity
         }
         public object GetHandler(Type constructed)
         {
-            throw new NotImplementedException();
+            return Container.Resolve(constructed);
         }
 
         private void ConfigureUnity(IEnumerable<Assembly> assemblies)
         {
             var kernel = new UnityContainer();
+            Type handlerType = typeof(IMessageHandler<>);
             foreach(var asm in assemblies)
             {
                 foreach(var type in asm.GetTypes().Where(t=>typeof(IMessageHandler<>).IsAssignableFrom(t)))
                 {
-                    Type handlerType = typeof(IMessageHandler<>);
-                    Type[] typeArgs = { type.GenericTypeArguments[0] };
-                    Type constructed = handlerType.MakeGenericType(typeArgs);
-                    kernel.RegisterType(constructed,type);
+                    foreach (var contract in type.GetInterfaces())
+                    {
+                        if (contract.GenericTypeArguments.Length > 0 && contract.BaseType.Equals(handlerType))
+                        {
+                            Type[] typeArgs = { contract.GenericTypeArguments[0] };
+                            Type constructed = handlerType.MakeGenericType(typeArgs);
+                            kernel.RegisterType(constructed, type);
+                        }
+                    }
                 }
             }
 ;
