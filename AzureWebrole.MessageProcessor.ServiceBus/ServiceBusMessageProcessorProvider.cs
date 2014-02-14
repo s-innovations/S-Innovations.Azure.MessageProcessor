@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace AzureWebrole.MessageProcessor.ServiceBus
 {
-    public class ServiceBusMessageProcessorProviderOptions : MessageProcessorProviderOptions<BrokeredMessage>
+    public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<BrokeredMessage>
     {
         public string ConnectionString { get; set; }
         public TopicDescription TopicDescription { get; set; }
@@ -24,7 +24,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
             set;
         }
     }
-    public class ServiceBusMessageProcessorProvider : MessageProcessorClientProvider<BrokeredMessage>
+    public class ServiceBusMessageProcessorProvider : IMessageProcessorClientProvider<BrokeredMessage>
     {
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
@@ -118,7 +118,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
 
 
 
-        public MessageProcessorProviderOptions<BrokeredMessage> Options
+        public IMessageProcessorProviderOptions<BrokeredMessage> Options
         {
             get { return options; }
         }

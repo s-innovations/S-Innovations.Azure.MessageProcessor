@@ -12,13 +12,17 @@ namespace AzureWebRole.MessageProcessor.Unity
     /// <summary>
     /// NOT TESTED
     /// </summary>
-    public class UnityHandlerResolver : MessageHandlerResolver
+    public class UnityHandlerResolver : IMessageHandlerResolver
     {
         private IUnityContainer Container;
 
         public UnityHandlerResolver(params Assembly[] assemblies)
         {
             ConfigureUnity(assemblies);
+        }
+        public UnityHandlerResolver(IUnityContainer container)
+        {
+            Container = container;
         }
         public object GetHandler(Type constructed)
         {
@@ -35,7 +39,8 @@ namespace AzureWebRole.MessageProcessor.Unity
                 {
                     foreach (var contract in type.GetInterfaces())
                     {
-                        if (contract.GenericTypeArguments.Length > 0 && contract.BaseType.Equals(handlerType))
+                        
+                        if (contract.GenericTypeArguments.Length > 0 && contract.GetGenericTypeDefinition().Equals(handlerType))
                         {
                             Type[] typeArgs = { contract.GenericTypeArguments[0] };
                             Type constructed = handlerType.MakeGenericType(typeArgs);

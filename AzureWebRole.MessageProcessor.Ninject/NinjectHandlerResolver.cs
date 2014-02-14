@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace AzureWebRole.MessageProcessor.Ninject
 {
-    public class NinjectHandlerResolver : MessageHandlerResolver
+    public class NinjectHandlerResolver : IMessageHandlerResolver
     {
         private IKernel NinjectKernel;
 

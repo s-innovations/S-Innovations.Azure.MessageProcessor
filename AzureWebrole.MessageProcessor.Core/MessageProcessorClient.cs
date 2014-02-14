@@ -14,7 +14,7 @@ namespace AzureWebrole.MessageProcessor.Core
         Task HandleAsync(MessageType T);
 
     }
-    public interface MessageProcessorClientProvider<MessageType> : MessageProcessorClientProvider<MessageProcessorProviderOptions<MessageType>, MessageType>
+    public interface IMessageProcessorClientProvider<MessageType> : IMessageProcessorClientProvider<IMessageProcessorProviderOptions<MessageType>, MessageType>
     {
         void StartListening(Func<MessageType,Task> OnMessageAsync);
         Task SendMessageAsync(MessageType message);
@@ -24,29 +24,29 @@ namespace AzureWebrole.MessageProcessor.Core
 
         Task CompleteMessageAsync(MessageType message);
     }
-    public interface MessageProcessorClientProvider<T, MessageType> : IDisposable where T : MessageProcessorProviderOptions<MessageType>
+    public interface IMessageProcessorClientProvider<T, MessageType> : IDisposable where T : IMessageProcessorProviderOptions<MessageType>
     {
         T Options { get; }
         T FromMessage<T>(MessageType m) where T : BaseMessage;
         MessageType ToMessage<T>(T message) where T : BaseMessage;
     }
-    public interface MessageProcessorProviderOptions<MessageType> 
+    public interface IMessageProcessorProviderOptions<MessageType> 
     {
 
 
         int MaxMessageRetries { get; }
         
     }
-    public interface MessageHandlerResolver
+    public interface IMessageHandlerResolver
     {
 
         object GetHandler(Type constructed);
     }
     public class MessageProcessorClient<MessageType>
     {
-        private readonly MessageProcessorClientProvider<MessageType> _provider;
-        private readonly MessageHandlerResolver _resolver;
-        public MessageProcessorClient(MessageProcessorClientProvider<MessageType> provider, MessageHandlerResolver resolver)
+        private readonly IMessageProcessorClientProvider<MessageType> _provider;
+        private readonly IMessageHandlerResolver _resolver;
+        public MessageProcessorClient(IMessageProcessorClientProvider<MessageType> provider, IMessageHandlerResolver resolver)
         {
             _provider = provider;
             _resolver = resolver;
