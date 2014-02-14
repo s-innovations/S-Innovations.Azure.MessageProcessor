@@ -12,7 +12,6 @@ namespace AzureWebrole.MessageProcessor.Core
     public interface IMessageHandler<MessageType>  where MessageType : BaseMessage
     {
         Task HandleAsync(MessageType T);
-
     }
     public interface IMessageProcessorClientProvider<MessageType> : IMessageProcessorClientProvider<IMessageProcessorProviderOptions<MessageType>, MessageType>
     {

@@ -16,7 +16,7 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
         public string ConnectionString { get; set; }
         public TopicDescription TopicDescription { get; set; }
         public SubscriptionDescription SubscriptionDescription { get; set; }
-        public OnMessageOptions MessageOptions { get; set; }
+        public int MaxConcurrentProcesses { get; set; }
         //public Func<BrokeredMessage, Task> OnMessage { get; set; }
         public int MaxMessageRetries
         {
@@ -75,9 +75,10 @@ namespace AzureWebrole.MessageProcessor.ServiceBus
             SubscriptionClient = SubscriptionClient.CreateFromConnectionString
                 (connectionString, this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name);
 
-            this.options.MessageOptions.ExceptionReceived += options_ExceptionReceived;
+            var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
+            messageOptions.ExceptionReceived += options_ExceptionReceived;
 
-            SubscriptionClient.OnMessageAsync(OnMessageAsync, this.options.MessageOptions);
+            SubscriptionClient.OnMessageAsync(OnMessageAsync, messageOptions);
 
         }
 
