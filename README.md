@@ -1,5 +1,7 @@
+
 Azure Webrole Message Processor
 ============================
+[![GoogleAnalyticsTracker Nightly Build Status](https://www.myget.org/BuildSource/Badge/s-innovations?identifier=d21c651e-1853-4a8d-8b4c-8e1f724ef3f0)](https://www.myget.org/gallery/googleanalyticstracker)
 
 I created this project with the boiler plate code I always use when doing a worker/web role for queue processing. 
 
@@ -16,4 +18,4 @@ public interface IMessageHandler<MessageType>  where MessageType : BaseMessage
 ```
 
 
-[![GoogleAnalyticsTracker Nightly Build Status](https://www.myget.org/BuildSource/Badge/s-innovations?identifier=d21c651e-1853-4a8d-8b4c-8e1f724ef3f0)](https://www.myget.org/gallery/googleanalyticstracker)
+
