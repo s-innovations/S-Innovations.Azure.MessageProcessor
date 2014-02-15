@@ -171,15 +171,23 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             return SendMessagesAsync(messages.Select(ToMessage));
         }
 
-        public int GetDeliveryCount(BrokeredMessage message)
+        public Task<int> GetDeliveryCountAsync(BrokeredMessage message)
         {
-            return message.DeliveryCount;
+            return Task.FromResult(message.DeliveryCount);
+       
         }
 
 
         public Task CompleteMessageAsync(BrokeredMessage message)
         {
             return message.CompleteAsync();
+        }
+
+
+        public Task MoveToDeadLetterAsync(BrokeredMessage message, string p1, string p2)
+        {
+            return message.DeadLetterAsync(p1, p2);
+           
         }
     }
 }

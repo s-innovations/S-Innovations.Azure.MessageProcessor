@@ -19,9 +19,11 @@ namespace AzureWebrole.MessageProcessor.Core
         Task SendMessageAsync(MessageType message);
         Task SendMessagesAsync(IEnumerable<MessageType> message);
 
-        int GetDeliveryCount(MessageType message);
+        Task<int> GetDeliveryCountAsync(MessageType message);
 
         Task CompleteMessageAsync(MessageType message);
+
+        Task MoveToDeadLetterAsync(MessageType message, string p1, string p2);
     }
     public interface IMessageProcessorClientProvider<T, MessageType> : IDisposable where T : IMessageProcessorProviderOptions<MessageType>
     {
@@ -95,8 +97,11 @@ namespace AzureWebrole.MessageProcessor.Core
         public async Task OnMessageAsync(MessageType message)
         {
 
-            if (_provider.GetDeliveryCount(message) > _provider.Options.MaxMessageRetries)
+            if (await _provider.GetDeliveryCountAsync(message) > _provider.Options.MaxMessageRetries)
+            {
+                await _provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
                 return;
+            }
 
 
             BaseMessage baseMessage = _provider.FromMessage<BaseMessage>(message);
