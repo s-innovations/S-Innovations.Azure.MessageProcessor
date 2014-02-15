@@ -17,45 +17,49 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         private readonly ServiceBusMessageProcessorProviderOptions options;
 
         private MessageClientEntity Client;
-        private Lazy<TopicClient> LazyTopicClient;
-        private Lazy<QueueClient> LazyQueueClient;
+        private readonly Lazy<TopicClient> LazyTopicClient;
+        private readonly Lazy<QueueClient> LazyQueueClient;
 
         public bool SupportTopic { get { return options.TopicDescription != null; } }
         public bool SupportQueue { get { return options.QueueDescription != null; } }
-        public bool SupportSubscription { get { return options.SubscriptionDescription != null; } }
+        public bool SupportSubscription { get { return options.TopicDescription != null && options.SubscriptionDescription != null; } }
 
         public ServiceBusMessageProcessorProvider(ServiceBusMessageProcessorProviderOptions options)
         {
             this.options = options;
 
             if (SupportTopic)
-                LazyTopicClient = new Lazy<TopicClient>(() =>
-                {
-
-                    var namespaceManager =
-                        NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
-
-                    if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
-                    {
-                        namespaceManager.CreateTopic(this.options.TopicDescription);
-                    }
-
-                    return TopicClient.CreateFromConnectionString(this.options.ConnectionString, options.TopicDescription.Path);
-                });
+                LazyTopicClient = new Lazy<TopicClient>(CreateTopicClient);
             if (SupportQueue)
-                LazyQueueClient = new Lazy<QueueClient>(() =>
-                {
-                    var namespaceManager =
-                       NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+                LazyQueueClient = new Lazy<QueueClient>(CreateQueueClient);
+        }
 
-                    if (!namespaceManager.QueueExists(this.options.QueueDescription.Path))
-                    {
-                        namespaceManager.CreateQueue(this.options.QueueDescription);
-                    }
+        private QueueClient CreateQueueClient()
+        {
+            Trace.TraceInformation("Creating Queue Client");
+            var namespaceManager =
+               NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
 
-                    return QueueClient.CreateFromConnectionString(this.options.ConnectionString, options.TopicDescription.Path);
+            if (!namespaceManager.QueueExists(this.options.QueueDescription.Path))
+            {
+                namespaceManager.CreateQueue(this.options.QueueDescription);
+            }
 
-                });
+            return QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
+        }
+
+        private TopicClient CreateTopicClient()
+        {
+            Trace.TraceInformation("Creating Topic Client");
+            var namespaceManager =
+                NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+
+            if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
+            {
+                namespaceManager.CreateTopic(this.options.TopicDescription);
+            }
+
+            return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
         }
         public void StartListening(Func<BrokeredMessage, Task> OnMessageAsync)
         {
@@ -82,7 +86,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
-            if (SupportSubscription && SupportTopic)
+            if (SupportSubscription)
             {
                 var client = SubscriptionClient.CreateFromConnectionString
                   (connectionString, this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name);
