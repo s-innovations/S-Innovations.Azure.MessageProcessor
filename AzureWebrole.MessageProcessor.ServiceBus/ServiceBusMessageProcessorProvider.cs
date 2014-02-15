@@ -134,8 +134,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         public void Dispose()
         {
-            if (Client != null) ;
-            Client.Close();
+            if (Client != null)
+                Client.Close();
         }
 
 

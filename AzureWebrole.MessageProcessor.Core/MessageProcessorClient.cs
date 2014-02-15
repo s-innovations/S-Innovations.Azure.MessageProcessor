@@ -41,7 +41,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
         object GetHandler(Type constructed);
     }
-    public class MessageProcessorClient<MessageType>
+    public class MessageProcessorClient<MessageType> : IDisposable
     {
         private readonly IMessageProcessorClientProvider<MessageType> _provider;
         private readonly IMessageHandlerResolver _resolver;
@@ -55,7 +55,7 @@ namespace AzureWebrole.MessageProcessor.Core
         private Task Runner;
         private TaskCompletionSource<int> source;
 
-        public Task InitializePluginAsync()
+        public Task StartProcessor()
         {
             Trace.WriteLine("Starting MessageProcessorClient");
             source = new TaskCompletionSource<int>();
@@ -122,5 +122,10 @@ namespace AzureWebrole.MessageProcessor.Core
         }
 
 
+
+        public void Dispose()
+        {
+            _provider.Dispose();
+        }
     }
 }
