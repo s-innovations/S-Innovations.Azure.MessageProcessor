@@ -45,7 +45,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 namespaceManager.CreateQueue(this.options.QueueDescription);
             }
 
-            return QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
+            return QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.QueueDescription.Path);
         }
 
         private TopicClient CreateTopicClient()
