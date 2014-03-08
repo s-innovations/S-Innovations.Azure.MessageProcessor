@@ -7,6 +7,9 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System.Text;
+using AzureWebRole.MessageProcessor.ServiceBus.Internal;
 
 namespace AzureWebRole.MessageProcessor.ServiceBus
 {
@@ -61,27 +64,31 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
             return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
         }
-        public void StartListening(Func<BrokeredMessage, Task> OnMessageAsync)
+        public void StartListening(Func<BrokeredMessage, Task> onMessageAsync)
         {
 
             string connectionString = this.options.ConnectionString;
 
             var namespaceManager =
                 NamespaceManager.CreateFromConnectionString(connectionString);
+          
             var tasks = new List<Task>();
 
+           
             if (SupportTopic && !namespaceManager.TopicExists(this.options.TopicDescription.Path))
             {
                 tasks.Add(namespaceManager.CreateTopicAsync(this.options.TopicDescription));
             }
-
-            if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name))
+            if (SupportSubscription && !namespaceManager.TopicExists(this.options.SubscriptionDescription.TopicPath))
             {
-                tasks.Add(namespaceManager.CreateSubscriptionAsync(this.options.SubscriptionDescription));
+                tasks.Add(namespaceManager.CreateTopicAsync(this.options.SubscriptionDescription.TopicPath));
             }
 
             Task.WaitAll(tasks.ToArray());
-
+            if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
+            {
+                namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
+            }
 
             var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
             messageOptions.ExceptionReceived += options_ExceptionReceived;
@@ -90,14 +97,15 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             {
                 var client = SubscriptionClient.CreateFromConnectionString
                   (connectionString, this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name);
-
-                client.OnMessageAsync(OnMessageAsync, messageOptions);
+              //  OnMessageAsync(onMessageAsync, messageOptions);
+                client.OnMessageAsync(onMessageAsync, messageOptions);
                 Client = client;
             }
             else if (SupportQueue)
             {
                 var client = LazyQueueClient.Value;
-                client.OnMessageAsync(OnMessageAsync, messageOptions);
+                client.OnMessageAsync(onMessageAsync, messageOptions);
+
                 Client = client;
             }
             else
@@ -106,7 +114,30 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             }
 
         }
-
+        //private void OnMessageAsync(Func<BrokeredMessage, Task> callback, OnMessageOptions messageOptions)
+        //{
+        //    this.OnMessage(new MessageReceivePump(this, options, callback));
+        //}
+        //private void OnMessage(MessageReceivePump pump)
+        //{
+        //    lock (this.receivePumpSyncRoot)
+        //    {
+        //        if (this.receivePump != null)
+        //        {
+        //            throw new InvalidOperationException(SRClient.OnMessageAlreadyCalled);
+        //        }
+        //        try
+        //        {
+        //            this.receivePump = pump;
+        //            this.receivePump.Start();
+        //        }
+        //        catch (Exception)
+        //        {
+        //            this.receivePump = null;
+        //            throw;
+        //        }
+        //    }
+        //}
         public T FromMessage<T>(BrokeredMessage m) where T : BaseMessage
         {
             var messageBodyType =
@@ -127,10 +158,21 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         public BrokeredMessage ToMessage<T>(T message) where T : BaseMessage
         {
             var brokeredMessage = new BrokeredMessage(message);
-            brokeredMessage.Properties["messageType"] = message.GetType().AssemblyQualifiedName;
+            var typename = message.GetType().AssemblyQualifiedName;
+            brokeredMessage.Properties["messageType"] =typename;
+            brokeredMessage.CorrelationId = makeGuidFromString(typename);
             return brokeredMessage;
         }
+        private string makeGuidFromString(string input)
+        {
+            var provider = new MD5CryptoServiceProvider();
+            var inputBytes = Encoding.UTF8.GetBytes(input);
 
+            var hashBytes = provider.ComputeHash(inputBytes);
+            var hashGuid = new Guid(hashBytes);
+
+            return hashGuid.ToString();
+        }
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
             Trace.TraceError("{0} {1}", e.Exception, e.Exception.InnerException);

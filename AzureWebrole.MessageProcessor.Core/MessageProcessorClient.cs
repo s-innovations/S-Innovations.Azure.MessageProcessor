@@ -57,7 +57,7 @@ namespace AzureWebrole.MessageProcessor.Core
         private Task Runner;
         private TaskCompletionSource<int> source;
 
-        public Task StartProcessor()
+        public Task StartProcessorAsync()
         {
             Trace.WriteLine("Starting MessageProcessorClient");
             source = new TaskCompletionSource<int>();
