@@ -177,7 +177,9 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         }
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
-            Trace.TraceError("{0} {1}", e.Exception, e.Exception.InnerException);
+            if(e.Exception!=null)
+                Trace.TraceError("{0} {1}", e.Exception, e.Exception.InnerException);
+              
         }
 
         public void Dispose()

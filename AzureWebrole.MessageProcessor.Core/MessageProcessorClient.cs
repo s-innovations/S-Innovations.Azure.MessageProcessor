@@ -99,8 +99,7 @@ namespace AzureWebrole.MessageProcessor.Core
         public async Task OnMessageAsync(MessageType message)
         {
             Trace.TraceInformation("Starting message : {0}", message);
-            try
-            {
+
                 if (await _provider.GetDeliveryCountAsync(message) > _provider.Options.MaxMessageRetries)
                 {
                     Trace.TraceInformation("Moving message : {0} to deadletter", message);
@@ -123,11 +122,8 @@ namespace AzureWebrole.MessageProcessor.Core
                 Trace.TraceInformation("Done with message : {0}", message);
                 //Everything ok, so take it off the queue
                 await _provider.CompleteMessageAsync(message);
-            }catch(Exception ex)
-            {
-                Trace.TraceError("exception for message {0} : {1}", message,ex);
-               
-            }
+ 
+            
 
         }
 
