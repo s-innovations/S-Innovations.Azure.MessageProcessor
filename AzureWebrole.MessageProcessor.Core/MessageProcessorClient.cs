@@ -98,27 +98,36 @@ namespace AzureWebrole.MessageProcessor.Core
 
         public async Task OnMessageAsync(MessageType message)
         {
-
-            if (await _provider.GetDeliveryCountAsync(message) > _provider.Options.MaxMessageRetries)
+            Trace.TraceInformation("Starting message : {0}", message);
+            try
             {
-                await _provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
-                return;
-            }
+                if (await _provider.GetDeliveryCountAsync(message) > _provider.Options.MaxMessageRetries)
+                {
+                    Trace.TraceInformation("Moving message : {0} to deadletter", message);
+                    await _provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
+                    return;
+                }
 
 
-            BaseMessage baseMessage = _provider.FromMessage<BaseMessage>(message);
-            bool loop = true;
+                BaseMessage baseMessage = _provider.FromMessage<BaseMessage>(message);
+                bool loop = true;
 
-            var task = ProcessMessageAsync(baseMessage).ContinueWith((t) => { loop = false; });            
-            while (loop)
+                var task = ProcessMessageAsync(baseMessage).ContinueWith((t) => { loop = false; });
+                while (loop)
+                {
+                   var t= await Task.WhenAny(task, Task.Delay(30000));
+                    if(t!=task)
+                        await _provider.RenewLockAsync(message);
+                }
+
+                Trace.TraceInformation("Done with message : {0}", message);
+                //Everything ok, so take it off the queue
+                await _provider.CompleteMessageAsync(message);
+            }catch(Exception ex)
             {
-                await Task.WhenAny(task, Task.Delay(10000));
-                await _provider.RenewLockAsync(message);
+                Trace.TraceError("exception for message {0} : {1}", message,ex);
+               
             }
-           
-
-            //Everything ok, so take it off the queue
-            await _provider.CompleteMessageAsync(message);
 
         }
 
