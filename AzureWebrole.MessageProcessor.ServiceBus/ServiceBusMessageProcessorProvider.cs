@@ -96,7 +96,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             if (SupportSubscription)
             {
                 var client = SubscriptionClient.CreateFromConnectionString
-                  (connectionString, this.options.TopicDescription.Path, this.options.SubscriptionDescription.Name);
+                  (connectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
               //  OnMessageAsync(onMessageAsync, messageOptions);
                 client.OnMessageAsync(onMessageAsync, messageOptions);
                 Client = client;
