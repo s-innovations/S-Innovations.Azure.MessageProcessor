@@ -24,6 +24,8 @@ namespace AzureWebrole.MessageProcessor.Core
         Task CompleteMessageAsync(MessageType message);
 
         Task MoveToDeadLetterAsync(MessageType message, string p1, string p2);
+
+        Task RenewLockAsync(MessageType message);
     }
     public interface IMessageProcessorClientProvider<T, MessageType> : IDisposable where T : IMessageProcessorProviderOptions<MessageType>
     {
@@ -105,7 +107,16 @@ namespace AzureWebrole.MessageProcessor.Core
 
 
             BaseMessage baseMessage = _provider.FromMessage<BaseMessage>(message);
-            await ProcessMessageAsync(baseMessage);
+            bool loop = true;
+
+            var task = ProcessMessageAsync(baseMessage).ContinueWith((t) => { loop = false; });            
+            while (loop)
+            {
+                await Task.WhenAny(task, Task.Delay(10000));
+                await _provider.RenewLockAsync(message);
+            }
+           
+
             //Everything ok, so take it off the queue
             await _provider.CompleteMessageAsync(message);
 

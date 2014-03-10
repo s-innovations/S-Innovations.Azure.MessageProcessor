@@ -233,5 +233,11 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             return message.DeadLetterAsync(p1, p2);
            
         }
+
+
+        public Task RenewLockAsync(BrokeredMessage message)
+        {
+            return message.RenewLockAsync();
+        }
     }
 }
