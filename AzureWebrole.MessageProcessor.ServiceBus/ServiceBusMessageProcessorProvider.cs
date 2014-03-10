@@ -60,6 +60,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
             {
                 namespaceManager.CreateTopic(this.options.TopicDescription);
+
             }
 
             return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
@@ -77,14 +78,14 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
            
             if (SupportTopic && !namespaceManager.TopicExists(this.options.TopicDescription.Path))
             {
-                tasks.Add(namespaceManager.CreateTopicAsync(this.options.TopicDescription));
+               namespaceManager.CreateTopic(this.options.TopicDescription);
             }
             if (SupportSubscription && !namespaceManager.TopicExists(this.options.SubscriptionDescription.TopicPath))
             {
-                tasks.Add(namespaceManager.CreateTopicAsync(this.options.SubscriptionDescription.TopicPath));
+               namespaceManager.CreateTopic(this.options.SubscriptionDescription.TopicPath);
             }
 
-            Task.WaitAll(tasks.ToArray());
+     
             if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
             {
                 namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
@@ -99,6 +100,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                   (connectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
               //  OnMessageAsync(onMessageAsync, messageOptions);
                 client.OnMessageAsync(onMessageAsync, messageOptions);
+               
                 Client = client;
             }
             else if (SupportQueue)
