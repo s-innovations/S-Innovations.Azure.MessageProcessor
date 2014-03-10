@@ -13,8 +13,11 @@ using System.Text;
 
 namespace AzureWebRole.MessageProcessor.ServiceBus
 {
+    public interface ServiceBusMessageProcessorClientProvider : IMessageProcessorClientProvider<BrokeredMessage>
+    {
 
-    public class ServiceBusMessageProcessorProvider : IMessageProcessorClientProvider<BrokeredMessage>
+    }
+    public class ServiceBusMessageProcessorProvider : ServiceBusMessageProcessorClientProvider
     {
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
@@ -116,30 +119,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             }
 
         }
-        //private void OnMessageAsync(Func<BrokeredMessage, Task> callback, OnMessageOptions messageOptions)
-        //{
-        //    this.OnMessage(new MessageReceivePump(this, options, callback));
-        //}
-        //private void OnMessage(MessageReceivePump pump)
-        //{
-        //    lock (this.receivePumpSyncRoot)
-        //    {
-        //        if (this.receivePump != null)
-        //        {
-        //            throw new InvalidOperationException(SRClient.OnMessageAlreadyCalled);
-        //        }
-        //        try
-        //        {
-        //            this.receivePump = pump;
-        //            this.receivePump.Start();
-        //        }
-        //        catch (Exception)
-        //        {
-        //            this.receivePump = null;
-        //            throw;
-        //        }
-        //    }
-        //}
+
         public T FromMessage<T>(BrokeredMessage m) where T : BaseMessage
         {
             var messageBodyType =
@@ -157,7 +137,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             var messageBody = generic.Invoke(m, null);
             return messageBody as T;
         }
-        public BrokeredMessage ToMessage<T>(T message) where T : BaseMessage
+        private BrokeredMessage ToMessage<T>(T message) where T : BaseMessage
         {
             var brokeredMessage = new BrokeredMessage(message);
             var typename = message.GetType().AssemblyQualifiedName;
@@ -197,32 +177,31 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         }
 
 
-        public Task SendMessageAsync(BrokeredMessage message)
+        private Task SendMessageAsync(BrokeredMessage message)
         {
             return LazyTopicClient.Value.SendAsync(message);
         }
-        public Task SendMessagesAsync(IEnumerable<BrokeredMessage> messages)
+        private Task SendMessagesAsync(IEnumerable<BrokeredMessage> messages)
         {
             return LazyTopicClient.Value.SendBatchAsync(messages);
         }
 
         public Task SendMessageAsync<T>(T message) where T : BaseMessage
         {
-            var brokeredMessage = new BrokeredMessage(message);
-            brokeredMessage.Properties["messageType"] = message.GetType().AssemblyQualifiedName;
-            return SendMessageAsync(brokeredMessage);
+            return SendMessageAsync(ToMessage<T>(message));
         }
         public Task SendMessagesAsync<T>(IEnumerable<T> messages) where T : BaseMessage
         {
-            return SendMessagesAsync(messages.Select(ToMessage));
+            return SendMessagesAsync(messages.Select(ToMessage<T>));
         }
+
+
 
         public Task<int> GetDeliveryCountAsync(BrokeredMessage message)
         {
             return Task.FromResult(message.DeliveryCount);
        
         }
-
 
         public Task CompleteMessageAsync(BrokeredMessage message)
         {

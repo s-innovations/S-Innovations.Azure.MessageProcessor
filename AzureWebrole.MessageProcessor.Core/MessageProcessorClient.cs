@@ -16,8 +16,10 @@ namespace AzureWebrole.MessageProcessor.Core
     public interface IMessageProcessorClientProvider<MessageType> : IMessageProcessorClientProvider<IMessageProcessorProviderOptions<MessageType>, MessageType>
     {
         void StartListening(Func<MessageType,Task> OnMessageAsync);
-        Task SendMessageAsync(MessageType message);
-        Task SendMessagesAsync(IEnumerable<MessageType> message);
+        //Task SendMessageAsync(MessageType message);
+        //Task SendMessagesAsync(IEnumerable<MessageType> message);
+        Task SendMessageAsync<T>(T message) where T : BaseMessage;
+        Task SendMessagesAsync<T>(IEnumerable<T> messages) where T : BaseMessage;
 
         Task<int> GetDeliveryCountAsync(MessageType message);
 
@@ -27,11 +29,11 @@ namespace AzureWebrole.MessageProcessor.Core
 
         Task RenewLockAsync(MessageType message);
     }
-    public interface IMessageProcessorClientProvider<T, MessageType> : IDisposable where T : IMessageProcessorProviderOptions<MessageType>
+    public interface IMessageProcessorClientProvider<TOptions, MessageType> : IDisposable where TOptions : IMessageProcessorProviderOptions<MessageType>
     {
-        T Options { get; }
+        TOptions Options { get; }
         T FromMessage<T>(MessageType m) where T : BaseMessage;
-        MessageType ToMessage<T>(T message) where T : BaseMessage;
+       // MessageType ToMessage<T>(T message) where T : BaseMessage;
     }
     public interface IMessageProcessorProviderOptions<MessageType> 
     {
@@ -69,11 +71,11 @@ namespace AzureWebrole.MessageProcessor.Core
         }
         public void AddMessage<T>(T Message) where T : BaseMessage
         {
-            _provider.SendMessageAsync(_provider.ToMessage(Message));
+            _provider.SendMessageAsync<T>(Message);
         }
         public void AddMessages<T>(IEnumerable<T> Message) where T : BaseMessage
         {
-            _provider.SendMessagesAsync( Message.Select(_provider.ToMessage));
+            _provider.SendMessagesAsync(Message);
         }
         private void StartSubscriptionClient()
         {
