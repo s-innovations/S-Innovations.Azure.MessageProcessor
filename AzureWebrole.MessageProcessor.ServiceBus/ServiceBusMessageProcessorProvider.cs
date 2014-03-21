@@ -56,7 +56,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         private TopicClient CreateTopicClient()
         {
-            Trace.TraceInformation("Creating Topic Client");
+            Trace.TraceInformation("Creating Topic Client: {0}", this.options.ConnectionString);
             var namespaceManager =
                 NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
 
