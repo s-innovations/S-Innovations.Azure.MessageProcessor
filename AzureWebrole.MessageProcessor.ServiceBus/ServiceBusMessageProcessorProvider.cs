@@ -42,7 +42,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         private QueueClient CreateQueueClient()
         {
-            Trace.TraceInformation("Creating Queue Client");
+            Trace.WriteLine("Creating Queue Client");
             var namespaceManager =
                NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
 
@@ -56,7 +56,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         private TopicClient CreateTopicClient()
         {
-            Trace.TraceInformation("Creating Topic Client: {0}", this.options.ConnectionString);
+            Trace.WriteLine("Creating Topic Client: {0}", this.options.ConnectionString);
             var namespaceManager =
                 NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
 
