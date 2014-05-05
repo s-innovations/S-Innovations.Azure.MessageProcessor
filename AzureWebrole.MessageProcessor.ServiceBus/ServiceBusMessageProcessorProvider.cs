@@ -75,28 +75,43 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
             var namespaceManager =
                 NamespaceManager.CreateFromConnectionString(connectionString);
-          
-            var tasks = new List<Task>();
 
-           
-            if (SupportTopic && !namespaceManager.TopicExists(this.options.TopicDescription.Path))
+
+            try
             {
-               namespaceManager.CreateTopic(this.options.TopicDescription);
+                if (SupportTopic && !namespaceManager.TopicExists(this.options.TopicDescription.Path))
+                {
+                    namespaceManager.CreateTopic(this.options.TopicDescription);
+                }
             }
-            if (SupportSubscription && !namespaceManager.TopicExists(this.options.SubscriptionDescription.TopicPath))
+            catch (Exception ex)
             {
-               namespaceManager.CreateTopic(this.options.SubscriptionDescription.TopicPath);
+                Trace.TraceError("Failed To setup Topic: {0} with {1}", this.options.TopicDescription.Path, ex.ToString());
+                throw;
             }
-         
-            
+            try
+            {
+                if (SupportSubscription && !namespaceManager.TopicExists(this.options.SubscriptionDescription.TopicPath))
+                {
+                    namespaceManager.CreateTopic(this.options.SubscriptionDescription.TopicPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Failed To setup Topic: {0} with {1}", this.options.SubscriptionDescription.TopicPath, ex.ToString());
+                throw;
+            }
+
             var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
 
             //Make sure that queues are created first if the subscription could be a forward
+            try { 
             if (SupportQueue)
             {
                 var client = LazyQueueClient.Value;
+                
                 if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
                 {
                     client.OnMessageAsync(onMessageAsync, messageOptions);
@@ -104,27 +119,52 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                     Client = client;
                 }
             }
-
-         
-            
-            if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
+            }
+            catch (Exception ex)
             {
-                namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
+                Trace.TraceError("Failed To setup Queue: {0} with {1}", this.options.QueueDescription.Path, ex.ToString());
+                throw;
             }
 
-            //Only use it if it is not a forward subscription.
-            if (SupportSubscription && string.IsNullOrEmpty(this.options.SubscriptionDescription.ForwardTo))
+
+
+            try
             {
-                var client = SubscriptionClient.CreateFromConnectionString
-                  (connectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
-              //  OnMessageAsync(onMessageAsync, messageOptions);
-                client.OnMessageAsync(onMessageAsync, messageOptions);
-               
-                Client = client;
+                if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
+                {
+                    namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Failed To setup subscription: {0} {2} with {1}",
+                    this.options.SubscriptionDescription.TopicPath, ex.ToString(), this.options.SubscriptionDescription.Name);
+                throw;
             }
 
-            
-            
+
+            try
+            {
+                //Only use it if it is not a forward subscription.
+                if (SupportSubscription && string.IsNullOrEmpty(this.options.SubscriptionDescription.ForwardTo))
+                {
+                    var client = SubscriptionClient.CreateFromConnectionString
+                      (connectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
+                    //  OnMessageAsync(onMessageAsync, messageOptions);
+                    client.OnMessageAsync(onMessageAsync, messageOptions);
+
+                    Client = client;
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Failed To setup subscription client: {0} {2} with {1}", 
+                    this.options.SubscriptionDescription.TopicPath, ex.ToString(),
+                    this.options.SubscriptionDescription.Name);
+                throw;
+            }
+
+
 
         }
 
@@ -149,7 +189,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         {
             var brokeredMessage = new BrokeredMessage(message);
             var typename = message.GetType().AssemblyQualifiedName;
-            brokeredMessage.Properties["messageType"] =typename;
+            brokeredMessage.Properties["messageType"] = typename;
             brokeredMessage.CorrelationId = makeGuidFromString(typename);
             return brokeredMessage;
         }
@@ -165,9 +205,9 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         }
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
-            if(e.Exception!=null)
+            if (e.Exception != null)
                 Trace.TraceError("{0} {1}", e.Exception, e.Exception.InnerException);
-              
+
         }
 
         public void Dispose()
@@ -208,7 +248,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         public Task<int> GetDeliveryCountAsync(BrokeredMessage message)
         {
             return Task.FromResult(message.DeliveryCount);
-       
+
         }
 
         public Task CompleteMessageAsync(BrokeredMessage message)
@@ -220,7 +260,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         public Task MoveToDeadLetterAsync(BrokeredMessage message, string p1, string p2)
         {
             return message.DeadLetterAsync(p1, p2);
-           
+
         }
 
 
