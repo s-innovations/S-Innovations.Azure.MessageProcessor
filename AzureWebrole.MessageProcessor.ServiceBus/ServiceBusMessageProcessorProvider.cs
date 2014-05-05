@@ -97,7 +97,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
-            if (SupportSubscription)
+            //Only use it if it is not a forward subscription.
+            if (SupportSubscription && string.IsNullOrEmpty(this.options.SubscriptionDescription.ForwardTo))
             {
                 var client = SubscriptionClient.CreateFromConnectionString
                   (connectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
@@ -106,17 +107,19 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                
                 Client = client;
             }
-            else if (SupportQueue)
+            
+            if (SupportQueue)
             {
                 var client = LazyQueueClient.Value;
-                client.OnMessageAsync(onMessageAsync, messageOptions);
+                if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
+                {
+                    client.OnMessageAsync(onMessageAsync, messageOptions);
 
-                Client = client;
+                    Client = client;
+                }
             }
-            else
-            {
-                throw new Exception("No listening client was started. Configure eitehr a queue or subscription client to start");
-            }
+            
+            
 
         }
 
