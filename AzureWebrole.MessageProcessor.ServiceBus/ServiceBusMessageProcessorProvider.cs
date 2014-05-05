@@ -87,15 +87,30 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             {
                namespaceManager.CreateTopic(this.options.SubscriptionDescription.TopicPath);
             }
+         
+            
+            var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
+            messageOptions.ExceptionReceived += options_ExceptionReceived;
 
-     
+
+            //Make sure that queues are created first if the subscription could be a forward
+            if (SupportQueue)
+            {
+                var client = LazyQueueClient.Value;
+                if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
+                {
+                    client.OnMessageAsync(onMessageAsync, messageOptions);
+
+                    Client = client;
+                }
+            }
+
+         
+            
             if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
             {
                 namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
             }
-
-            var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
-            messageOptions.ExceptionReceived += options_ExceptionReceived;
 
             //Only use it if it is not a forward subscription.
             if (SupportSubscription && string.IsNullOrEmpty(this.options.SubscriptionDescription.ForwardTo))
@@ -107,17 +122,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                
                 Client = client;
             }
-            
-            if (SupportQueue)
-            {
-                var client = LazyQueueClient.Value;
-                if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
-                {
-                    client.OnMessageAsync(onMessageAsync, messageOptions);
 
-                    Client = client;
-                }
-            }
             
             
 
