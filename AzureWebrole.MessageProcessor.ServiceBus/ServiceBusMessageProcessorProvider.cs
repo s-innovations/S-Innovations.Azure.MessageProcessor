@@ -28,7 +28,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         public bool SupportTopic { get { return options.TopicDescription != null; } }
         public bool SupportQueue { get { return options.QueueDescription != null; } }
-        public bool SupportSubscription { get { return options.TopicDescription != null && options.SubscriptionDescription != null; } }
+        public bool SupportSubscription { get { return options.SubscriptionDescription != null; } }
 
         public ServiceBusMessageProcessorProvider(ServiceBusMessageProcessorProviderOptions options)
         {
