@@ -17,6 +17,54 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
     {
 
     }
+    public class ScaledTopicClient
+    {
+        private readonly ServiceBusMessageProcessorProviderOptions options;
+        private Random R;
+        private readonly Lazy<TopicClient>[] LazyTopicClients;
+        private readonly NamespaceManager namespaceManager;
+        public ScaledTopicClient(ServiceBusMessageProcessorProviderOptions options)
+        {
+            this.options = options;
+            this.R = new Random();
+
+            var list = new List<Lazy<TopicClient>>(options.TopicScaleCount.Value);
+            namespaceManager = NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+
+            for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
+            {
+                var topicname = this.options.TopicDescription.Path + i.ToString("D3");
+                list.Add(new Lazy<TopicClient>(() => CreateTopicClient(topicname)));
+            }
+            LazyTopicClients = list.ToArray();
+        }
+        private TopicClient CreateTopicClient(string topicname)
+        {
+            
+            
+            Trace.WriteLine(string.Format("Creating Topic Client: {0}, {1}", this.options.ConnectionString,topicname));
+
+            return TopicClient.CreateFromConnectionString(this.options.ConnectionString, topicname);
+        }
+
+        internal Task SendAsync(BrokeredMessage message)
+        {
+            var r = R.Next(options.TopicScaleCount.Value);
+            Trace.WriteLine(string.Format("Posting Message onto Topic {1} '{0}'", 
+                this.LazyTopicClients[r].Value.Path,r));
+
+            return this.LazyTopicClients[r].Value.SendAsync(message);
+
+        }
+        internal Task SendBatchAsync(IEnumerable<BrokeredMessage> messages)
+        {
+            var r = R.Next(options.TopicScaleCount.Value);
+            Trace.WriteLine(string.Format("Posting Messages onto Topic {1} '{0}'", 
+                this.LazyTopicClients[r].Value.Path,r));
+
+            return this.LazyTopicClients[r].Value.SendBatchAsync(messages);
+        }
+    }
     public class ServiceBusMessageProcessorProvider : ServiceBusMessageProcessorClientProvider
     {
 
@@ -25,10 +73,13 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         private MessageClientEntity Client;
         private readonly Lazy<TopicClient> LazyTopicClient;
         private readonly Lazy<QueueClient> LazyQueueClient;
+        private readonly ScaledTopicClient ScaledTopicClient;
 
         public bool SupportTopic { get { return options.TopicDescription != null; } }
         public bool SupportQueue { get { return options.QueueDescription != null; } }
         public bool SupportSubscription { get { return options.SubscriptionDescription != null; } }
+        public bool SupportFilteredTopic { get { return options.TopicScaleCount.HasValue; } }
+
 
         public ServiceBusMessageProcessorProvider(ServiceBusMessageProcessorProviderOptions options)
         {
@@ -38,6 +89,12 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 LazyTopicClient = new Lazy<TopicClient>(CreateTopicClient);
             if (SupportQueue)
                 LazyQueueClient = new Lazy<QueueClient>(CreateQueueClient);
+            if (SupportFilteredTopic)
+            {
+                ScaledTopicClient = new ScaledTopicClient(options);
+            }
+
+              
         }
 
         private QueueClient CreateQueueClient()
@@ -67,6 +124,80 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             }
 
             return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
+        }
+
+        /// <summary>
+        /// Creates all the topics,subscriptions for Filtered Queues
+        /// </summary>
+        /// <returns></returns>
+        public async Task EnsureTopicsAndQueuesCreatedAsync()
+        {
+             string connectionString = this.options.ConnectionString;
+
+            var namespaceManager =
+                NamespaceManager.CreateFromConnectionString(connectionString);
+
+            var originalSubscriptionName = options.SubscriptionDescription.Name;
+            var originalTopicPath = options.TopicDescription.Path;
+            //Create All Queues
+            await Task.WhenAll(options.CorrelationToQueueMapping.Values
+                .Select(q => CreateQueueIfNotExist(namespaceManager, q)));
+
+            for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
+            {
+                options.TopicDescription.Path = originalTopicPath + i.ToString("D3");
+                if (!await namespaceManager.TopicExistsAsync(options.TopicDescription.Path))
+                {
+                    await namespaceManager.CreateTopicAsync(options.TopicDescription.Path);
+                }
+              
+                foreach(var mapping in options.CorrelationToQueueMapping)
+                {
+                    var forwardPath = "";
+
+                    var queue = mapping.Value as QueueDescription;
+                    if (queue != null)
+                        forwardPath = queue.Path;
+
+                    var topic = mapping.Value as TopicDescription;
+                    if (topic != null)
+                        forwardPath = topic.Path;
+
+                    options.SubscriptionDescription.Name = originalSubscriptionName + "2" + forwardPath;
+                    options.SubscriptionDescription.TopicPath = options.TopicDescription.Path;
+                    options.SubscriptionDescription.ForwardTo = forwardPath;
+                    if (!await namespaceManager.SubscriptionExistsAsync(options.TopicDescription.Path, options.SubscriptionDescription.Name))
+                    {
+                        await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription,new CorrelationFilter(mapping.Key));
+                    }
+                }
+         
+            }
+            options.TopicDescription.Path = originalTopicPath;
+            options.SubscriptionDescription.Name = originalSubscriptionName;
+
+        }
+        private async Task CreateQueueIfNotExist(NamespaceManager manager, EntityDescription entity)
+        {
+            var queue = entity as QueueDescription;
+            if (queue != null)
+            {
+                if (!await manager.QueueExistsAsync(queue.Path))
+                {
+                    await manager.CreateQueueAsync(queue);
+                }
+                return;
+            }
+            var topic = entity as TopicDescription;
+            if (topic != null)
+            {
+                if (!await manager.TopicExistsAsync(topic.Path))
+                {
+                    await manager.CreateTopicAsync(topic);
+                }
+                return;
+            }
+
         }
         public void StartListening(Func<BrokeredMessage, Task> onMessageAsync)
         {
@@ -190,7 +321,10 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             var brokeredMessage = new BrokeredMessage(message);
             var typename = message.GetType().AssemblyQualifiedName;
             brokeredMessage.Properties["messageType"] = typename;
-            brokeredMessage.CorrelationId = makeGuidFromString(typename);
+
+            if (options.CorrelationIdProvider != null)
+            brokeredMessage.CorrelationId = options.CorrelationIdProvider(message);
+            
             return brokeredMessage;
         }
         private string makeGuidFromString(string input)
@@ -227,10 +361,15 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         private Task SendMessageAsync(BrokeredMessage message)
         {
+            if (SupportFilteredTopic)
+                return ScaledTopicClient.SendAsync(message);
             return LazyTopicClient.Value.SendAsync(message);
         }
         private Task SendMessagesAsync(IEnumerable<BrokeredMessage> messages)
         {
+            if (SupportFilteredTopic)
+                return ScaledTopicClient.SendBatchAsync(messages);
+
             return LazyTopicClient.Value.SendBatchAsync(messages);
         }
 

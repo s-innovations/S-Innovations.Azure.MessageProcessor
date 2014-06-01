@@ -73,9 +73,9 @@ namespace AzureWebrole.MessageProcessor.Core
         {
             _provider.SendMessageAsync<T>(Message);
         }
-        public void AddMessages<T>(IEnumerable<T> Message) where T : BaseMessage
+        public void AddMessages<T>(IEnumerable<T> Messages) where T : BaseMessage
         {
-            _provider.SendMessagesAsync(Message);
+            _provider.SendMessagesAsync(Messages);
         }
         private void StartSubscriptionClient()
         {

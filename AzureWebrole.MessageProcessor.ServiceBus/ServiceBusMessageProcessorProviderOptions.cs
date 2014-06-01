@@ -11,7 +11,6 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
     public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<BrokeredMessage>
     {
-
         public string ConnectionString { get; set; }
         public TopicDescription TopicDescription { get; set; }
         public SubscriptionDescription SubscriptionDescription { get; set; }
@@ -20,6 +19,12 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         public int MaxConcurrentProcesses { get; set; }
 
         public int MaxMessageRetries { get; set; }
-      
+
+        public Func<BaseMessage, string> CorrelationIdProvider { get; set; }
+
+        // Scaleable Filtering Options
+        public int? TopicScaleCount { get; set; }
+
+        public IDictionary<string, EntityDescription> CorrelationToQueueMapping { get; set; }
     }
 }
