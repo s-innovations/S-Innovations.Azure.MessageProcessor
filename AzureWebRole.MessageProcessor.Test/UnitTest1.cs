@@ -30,7 +30,7 @@ namespace AzureWebRole.MessageProcessor.Test
                 TopicScaleCount = 5,
                 CorrelationToQueueMapping = new Dictionary<string, EntityDescription>{
                     {"test", new QueueDescription("test") },
-                    {"anothertest",new QueueDescription("anotherTest")}
+                    {"anothertest",new QueueDescription("another-test")}
                   },
                 //Subscription Description is only used for properties passing to the created subscriptions. here sub is prefixname of forward subscriptions
                 SubscriptionDescription = new SubscriptionDescription("blablanotUsed", "sub"),
@@ -38,7 +38,7 @@ namespace AzureWebRole.MessageProcessor.Test
                 TopicDescription = new TopicDescription("ourTopics"),
             };
 
-
+            
             var provider = new ServiceBusMessageProcessorProvider(options);
             provider.EnsureTopicsAndQueuesCreatedAsync().Wait();
 

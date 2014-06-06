@@ -170,6 +170,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                     {
                         await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription,new CorrelationFilter(mapping.Key));
                     }
+                  
+
                 }
          
             }
