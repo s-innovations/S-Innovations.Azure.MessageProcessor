@@ -58,8 +58,28 @@ namespace AzureWebrole.MessageProcessor.Core
     }
     public interface IMessageProcessorNotifications
     {
-         Action<MovingToDeadLetter> MovingMessageToDeadLetter { get; set; }
-         Action<MessageCompletedNotification> MessageCompleted { get; set; }
+      
+     void MovingMessageToDeadLetter(MovingToDeadLetter moveToDeadLetterEvent);
+     void MessageCompleted(MessageCompletedNotification messageCompletedNotification);
+    
+    }
+
+    public class DefaultNotifications : IMessageProcessorNotifications
+    {
+         Action<MovingToDeadLetter> MovingMessageToDeadLetterAction { get; set; }
+         Action<MessageCompletedNotification> MessageCompletedAction { get; set; }
+
+         public void MovingMessageToDeadLetter(MovingToDeadLetter moveToDeadLetterEvent)
+         {
+             if (MovingMessageToDeadLetterAction != null)
+                 MovingMessageToDeadLetterAction(moveToDeadLetterEvent);
+         }
+
+         public void MessageCompleted(MessageCompletedNotification messageCompletedNotification)
+         {
+             if (MessageCompletedAction != null)
+                 MessageCompletedAction(messageCompletedNotification);
+         }
     }
     public class MessageProcessorClient<MessageType> : IDisposable
     {
@@ -73,6 +93,8 @@ namespace AzureWebrole.MessageProcessor.Core
         {
             _provider = provider;
             _resolver = resolver;
+
+            Notifications = new DefaultNotifications();
         }
         private ManualResetEvent CompletedEvent = new ManualResetEvent(false);
 
@@ -127,7 +149,7 @@ namespace AzureWebrole.MessageProcessor.Core
                 Trace.TraceInformation("Moving message : {0} to deadletter", message);
                 var moveToDeadLetterEvent = new MovingToDeadLetter() { Message = baseMessage };
 
-                if (Notifications != null && Notifications.MovingMessageToDeadLetter != null)
+                if (Notifications != null)
                     Notifications.MovingMessageToDeadLetter(moveToDeadLetterEvent);
 
                 if (!moveToDeadLetterEvent.Cancel)
@@ -154,7 +176,7 @@ namespace AzureWebrole.MessageProcessor.Core
             //Everything ok, so take it off the queue
             await _provider.CompleteMessageAsync(message);
            
-            if(Notifications!=null && Notifications.MessageCompleted !=null)
+            if(Notifications!=null)
                 Notifications.MessageCompleted(new MessageCompletedNotification { Message = baseMessage });
 
 
