@@ -59,26 +59,28 @@ namespace AzureWebrole.MessageProcessor.Core
     public interface IMessageProcessorNotifications
     {
       
-     void MovingMessageToDeadLetter(MovingToDeadLetter moveToDeadLetterEvent);
-     void MessageCompleted(MessageCompletedNotification messageCompletedNotification);
+     Task MovingMessageToDeadLetterAsync(MovingToDeadLetter moveToDeadLetterEvent);
+     Task MessageCompletedAsync(MessageCompletedNotification messageCompletedNotification);
     
     }
 
     public class DefaultNotifications : IMessageProcessorNotifications
     {
-         Action<MovingToDeadLetter> MovingMessageToDeadLetterAction { get; set; }
-         Action<MessageCompletedNotification> MessageCompletedAction { get; set; }
+         Func<MovingToDeadLetter,Task> MovingMessageToDeadLetterFunc { get; set; }
+         Func<MessageCompletedNotification,Task> MessageCompletedFunc { get; set; }
 
-         public void MovingMessageToDeadLetter(MovingToDeadLetter moveToDeadLetterEvent)
+         public Task MovingMessageToDeadLetterAsync(MovingToDeadLetter moveToDeadLetterEvent)
          {
-             if (MovingMessageToDeadLetterAction != null)
-                 MovingMessageToDeadLetterAction(moveToDeadLetterEvent);
+             if (MovingMessageToDeadLetterFunc != null)
+                 return MovingMessageToDeadLetterFunc(moveToDeadLetterEvent);
+             return Task.FromResult(0);
          }
 
-         public void MessageCompleted(MessageCompletedNotification messageCompletedNotification)
+         public Task MessageCompletedAsync(MessageCompletedNotification messageCompletedNotification)
          {
-             if (MessageCompletedAction != null)
-                 MessageCompletedAction(messageCompletedNotification);
+             if (MessageCompletedFunc != null)
+                 return MessageCompletedFunc(messageCompletedNotification);
+             return Task.FromResult(0);
          }
     }
     public class MessageProcessorClient<MessageType> : IDisposable
@@ -150,7 +152,7 @@ namespace AzureWebrole.MessageProcessor.Core
                 var moveToDeadLetterEvent = new MovingToDeadLetter() { Message = baseMessage };
 
                 if (Notifications != null)
-                    Notifications.MovingMessageToDeadLetter(moveToDeadLetterEvent);
+                    await Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
 
                 if (!moveToDeadLetterEvent.Cancel)
                 {
@@ -177,7 +179,7 @@ namespace AzureWebrole.MessageProcessor.Core
             await _provider.CompleteMessageAsync(message);
            
             if(Notifications!=null)
-                Notifications.MessageCompleted(new MessageCompletedNotification { Message = baseMessage });
+                await Notifications.MessageCompletedAsync(new MessageCompletedNotification { Message = baseMessage });
 
 
         }
