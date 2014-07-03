@@ -21,13 +21,15 @@ namespace AzureWebRole.MessageProcessor.Test
         {
 
 #if DEBUG
-            var connectionString = File.ReadAllText(@"C:\Users\PoulKjeldager\Desktop\servicebus-test.txt");
 
+
+            var connectionString = "Endpoint=sb://scaletest3.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=oVC0tZZ4pULz7r9Cq5/WpMqqcNUj/v6x8zOTshGCyT0=";
+            int scalecount = 10;
             //Setting up everything (run Once)
             var options = new ServiceBusMessageProcessorProviderOptions()
             {
                 ConnectionString = connectionString,
-                TopicScaleCount = 5,
+                TopicScaleCount = scalecount,
                 CorrelationToQueueMapping = new Dictionary<string, EntityDescription>{
                     {"test", new QueueDescription("test") },
                     {"anothertest",new QueueDescription("another-test")}
@@ -36,6 +38,11 @@ namespace AzureWebRole.MessageProcessor.Test
                 SubscriptionDescription = new SubscriptionDescription("blablanotUsed", "sub"),
                 //Topic is used for properties and topic nameprefix, this case ourtopics.
                 TopicDescription = new TopicDescription("ourTopics"),
+                ConnectionStringProvider = new Dictionary<string, string>
+                {
+                    {"test","Endpoint=sb://scaletest1.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=WA3Q4aORYuDtEywWHIPY6I2lhZ/5zCgZy+DhdyPQEaQ="},
+                    {"anothertest","Endpoint=sb://scaletest2.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=bL8Jt58rlNUO1z9Lw3fT04tC+YiuSo8jFMPavNrI4EY="}
+                }
             };
 
             
@@ -48,10 +55,15 @@ namespace AzureWebRole.MessageProcessor.Test
                 new ServiceBusMessageProcessorProviderOptions
                 {
                     ConnectionString = connectionString,
-                    TopicScaleCount = 5,
+                    TopicScaleCount = scalecount,
                     CorrelationIdProvider = (message) =>
                     {
                         return (message as TestMessage).Id;
+                    },
+                    ConnectionStringProvider = new Dictionary<string, string>
+                    {
+                        {"test","Endpoint=sb://scaletest1.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=WA3Q4aORYuDtEywWHIPY6I2lhZ/5zCgZy+DhdyPQEaQ="},
+                        {"anothertest","Endpoint=sb://scaletest2.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=bL8Jt58rlNUO1z9Lw3fT04tC+YiuSo8jFMPavNrI4EY="}
                     },
                     TopicDescription = new TopicDescription("ourTopics"),
                 });

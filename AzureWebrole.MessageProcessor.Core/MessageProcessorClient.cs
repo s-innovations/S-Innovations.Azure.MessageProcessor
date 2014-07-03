@@ -203,6 +203,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
         public void Dispose()
         {
+            CompletedEvent.Set(); //Runner shoul now complete.
             _provider.Dispose();
         }
     }

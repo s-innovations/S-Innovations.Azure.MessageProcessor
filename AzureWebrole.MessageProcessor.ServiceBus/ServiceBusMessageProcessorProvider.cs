@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks.Dataflow;
 
 
 namespace AzureWebRole.MessageProcessor.ServiceBus
@@ -19,50 +20,97 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
     }
     public class ScaledTopicClient
     {
-        private readonly ServiceBusMessageProcessorProviderOptions options;
+        private const string DEFAULT_COORELATION_ID = "__DEFAULT__";
+        //private readonly ServiceBusMessageProcessorProviderOptions options;
         private Random R;
-        private readonly Lazy<TopicClient>[] LazyTopicClients;
-        private readonly NamespaceManager namespaceManager;
+        private int _scaleCount = 1;
+        private readonly Dictionary<string, Lazy<TopicClient>[]> LazyTopicClients;
+        //private readonly NamespaceManager namespaceManager;
         public ScaledTopicClient(ServiceBusMessageProcessorProviderOptions options)
         {
-            this.options = options;
+            //   this.options = options;
             this.R = new Random();
-
-            var list = new List<Lazy<TopicClient>>(options.TopicScaleCount.Value);
-            namespaceManager = NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
-
-            for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
+            this._scaleCount = options.TopicScaleCount.Value;
+            LazyTopicClients = new Dictionary<string, Lazy<TopicClient>[]>();
+            if (options.ConnectionStringProvider != null)
             {
-                var topicname = this.options.TopicDescription.Path + i.ToString("D3");
-                list.Add(new Lazy<TopicClient>(() => CreateTopicClient(topicname)));
+                foreach (var mapping in options.ConnectionStringProvider)
+                {
+                    LazyTopicClients.Add(mapping.Key,
+                        CreateTopicClientsForConnectionString(options.TopicScaleCount.Value, options.TopicDescription.Path, mapping.Value));
+                }
             }
-            LazyTopicClients = list.ToArray();
-        }
-        private TopicClient CreateTopicClient(string topicname)
-        {
-            
-            
-            Trace.WriteLine(string.Format("Creating Topic Client: {0}, {1}", this.options.ConnectionString,topicname));
 
-            return TopicClient.CreateFromConnectionString(this.options.ConnectionString, topicname);
+
+            LazyTopicClients.Add(DEFAULT_COORELATION_ID, CreateTopicClientsForConnectionString(
+                   options.TopicScaleCount.Value, options.TopicDescription.Path, options.ConnectionString));
+
+        }
+
+        private Lazy<TopicClient>[] CreateTopicClientsForConnectionString(int count, string prefix, string conn)
+        {
+            var list = new List<Lazy<TopicClient>>(count);
+            var namespaceManager = NamespaceManager.CreateFromConnectionString(conn);
+
+            for (int i = 0, ii = count; i < ii; ++i)
+            {
+                var name = prefix + i.ToString("D3");
+                list.Add(new Lazy<TopicClient>(() => CreateTopicClient(conn, name)));
+            }
+            return list.ToArray();
+        }
+        private TopicClient CreateTopicClient(string conn, string topicname)
+        {
+
+
+            Trace.WriteLine(string.Format("Creating Topic Client: {0}, {1}", conn, topicname));
+
+            return TopicClient.CreateFromConnectionString(conn, topicname);
         }
 
         internal Task SendAsync(BrokeredMessage message)
         {
-            var r = R.Next(options.TopicScaleCount.Value);
-            Trace.WriteLine(string.Format("Posting Message onto Topic {1} '{0}'", 
-                this.LazyTopicClients[r].Value.Path,r));
 
-            return this.LazyTopicClients[r].Value.SendAsync(message);
+            int r = R.Next(_scaleCount);
+            TopicClient client=  GetClient(message.CorrelationId, r);
 
+            Trace.WriteLine(string.Format("Posting Message onto Topic {1} '{0}'",
+                client.Path, r));
+
+            return client.SendAsync(message);
+
+        }
+
+        private TopicClient GetClient(string coorid, int r)
+        {
+
+
+            var coorelationId = coorid ?? DEFAULT_COORELATION_ID;
+
+           return (this.LazyTopicClients.ContainsKey(coorelationId) ?
+                this.LazyTopicClients[coorelationId][r] :
+                this.LazyTopicClients[DEFAULT_COORELATION_ID][r]).Value;
         }
         internal Task SendBatchAsync(IEnumerable<BrokeredMessage> messages)
         {
-            var r = R.Next(options.TopicScaleCount.Value);
-            Trace.WriteLine(string.Format("Posting Messages onto Topic {1} '{0}'", 
-                this.LazyTopicClients[r].Value.Path,r));
+            var postBlock = new ActionBlock<IGrouping<string, BrokeredMessage>>((group) =>
+            {
 
-            return this.LazyTopicClients[r].Value.SendBatchAsync(messages);
+                var r = R.Next(_scaleCount);
+                TopicClient client = GetClient(group.Key, r);
+
+                Trace.WriteLine(string.Format("Posting Messages onto Topic {1} '{0}'",client));
+
+                return client.SendBatchAsync(messages);
+            });
+
+
+            foreach (var group in messages.GroupBy(m => m.CorrelationId ?? DEFAULT_COORELATION_ID))
+                postBlock.Post(group);
+
+            postBlock.Complete();
+            return postBlock.Completion;
+
         }
     }
     public class ServiceBusMessageProcessorProvider : ServiceBusMessageProcessorClientProvider
@@ -94,7 +142,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 ScaledTopicClient = new ScaledTopicClient(options);
             }
 
-              
+
         }
 
         private QueueClient CreateQueueClient()
@@ -126,60 +174,87 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
         }
 
+        private NamespaceManager GetNamespaceManagerForCorrelationId(string id = null)
+        {
+            if (options.ConnectionStringProvider != null && id != null)
+            {
+                if (options.ConnectionStringProvider.ContainsKey(id))
+                    return NamespaceManager.CreateFromConnectionString(options.ConnectionStringProvider[id]);
+            }
+            return NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+        }
         /// <summary>
         /// Creates all the topics,subscriptions for Filtered Queues
         /// </summary>
         /// <returns></returns>
         public async Task EnsureTopicsAndQueuesCreatedAsync()
         {
-             string connectionString = this.options.ConnectionString;
-
-            var namespaceManager =
-                NamespaceManager.CreateFromConnectionString(connectionString);
 
             var originalSubscriptionName = options.SubscriptionDescription.Name;
             var originalTopicPath = options.TopicDescription.Path;
-            //Create All Queues
-            await Task.WhenAll(options.CorrelationToQueueMapping.Values
-                .Select(q => CreateQueueIfNotExist(namespaceManager, q)));
 
-            for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
+            //Create All Grouping Targets
+            await Task.WhenAll(options.CorrelationToQueueMapping
+                .Select(mapping => CreateTargetIfNotExist(GetNamespaceManagerForCorrelationId(mapping.Key), mapping.Value)));
+
+            Func<int, NamespaceManager, Task> EnsureTopicCreated = async (i, namespaceManager) =>
             {
                 options.TopicDescription.Path = originalTopicPath + i.ToString("D3");
                 if (!await namespaceManager.TopicExistsAsync(options.TopicDescription.Path))
                 {
                     await namespaceManager.CreateTopicAsync(options.TopicDescription.Path);
                 }
-              
-                foreach(var mapping in options.CorrelationToQueueMapping)
-                {
-                    var forwardPath = "";
+            };
 
-                    var queue = mapping.Value as QueueDescription;
-                    if (queue != null)
-                        forwardPath = queue.Path;
+            for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
+            {
 
-                    var topic = mapping.Value as TopicDescription;
-                    if (topic != null)
-                        forwardPath = topic.Path;
 
-                    options.SubscriptionDescription.Name = originalSubscriptionName + "2" + forwardPath;
-                    options.SubscriptionDescription.TopicPath = options.TopicDescription.Path;
-                    options.SubscriptionDescription.ForwardTo = forwardPath;
-                    if (!await namespaceManager.SubscriptionExistsAsync(options.TopicDescription.Path, options.SubscriptionDescription.Name))
+
+                foreach (var group in options.CorrelationToQueueMapping
+                    .Select(mapping => new
                     {
-                        await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription,new CorrelationFilter(mapping.Key));
+                        Map = mapping,
+                        NameSpaceManager = GetNamespaceManagerForCorrelationId(mapping.Key)
+                    }).GroupBy(mapping => mapping.NameSpaceManager.Address.AbsoluteUri))
+                {
+                    foreach (var mapping in group)
+                    {
+
+                        var namespaceManager = GetNamespaceManagerForCorrelationId(mapping.Map.Key);
+
+                        await EnsureTopicCreated(i, namespaceManager);
+
+                        var forwardPath = "";
+
+                        var queue = mapping.Map.Value as QueueDescription;
+                        if (queue != null)
+                            forwardPath = queue.Path;
+
+                        var topic = mapping.Map.Value as TopicDescription;
+                        if (topic != null)
+                            forwardPath = topic.Path;
+
+                        options.SubscriptionDescription.Name = originalSubscriptionName + "2" + forwardPath;
+                        options.SubscriptionDescription.TopicPath = options.TopicDescription.Path;
+                        options.SubscriptionDescription.ForwardTo = forwardPath;
+
+
+                        if (!await namespaceManager.SubscriptionExistsAsync(options.TopicDescription.Path, options.SubscriptionDescription.Name))
+                        {
+                            await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription, new CorrelationFilter(mapping.Map.Key));
+                        }
+
                     }
-                  
 
                 }
-         
+
             }
             options.TopicDescription.Path = originalTopicPath;
             options.SubscriptionDescription.Name = originalSubscriptionName;
 
         }
-        private async Task CreateQueueIfNotExist(NamespaceManager manager, EntityDescription entity)
+        private async Task CreateTargetIfNotExist(NamespaceManager manager, EntityDescription entity)
         {
             var queue = entity as QueueDescription;
             if (queue != null)
@@ -240,18 +315,19 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
 
             //Make sure that queues are created first if the subscription could be a forward
-            try { 
-            if (SupportQueue)
+            try
             {
-                var client = LazyQueueClient.Value;
-                
-                if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
+                if (SupportQueue)
                 {
-                    client.OnMessageAsync(onMessageAsync, messageOptions);
+                    var client = LazyQueueClient.Value;
 
-                    Client = client;
+                    if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
+                    {
+                        client.OnMessageAsync(onMessageAsync, messageOptions);
+
+                        Client = client;
+                    }
                 }
-            }
             }
             catch (Exception ex)
             {
@@ -291,7 +367,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed To setup subscription client: {0} {2} with {1}", 
+                Trace.TraceError("Failed To setup subscription client: {0} {2} with {1}",
                     this.options.SubscriptionDescription.TopicPath, ex.ToString(),
                     this.options.SubscriptionDescription.Name);
                 throw;
@@ -325,8 +401,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             brokeredMessage.Properties["messageType"] = typename;
 
             if (options.CorrelationIdProvider != null)
-            brokeredMessage.CorrelationId = options.CorrelationIdProvider(message);
-            
+                brokeredMessage.CorrelationId = options.CorrelationIdProvider(message);
+
             return brokeredMessage;
         }
         private string makeGuidFromString(string input)
