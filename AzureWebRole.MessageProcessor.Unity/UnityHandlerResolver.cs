@@ -26,7 +26,10 @@ namespace AzureWebRole.MessageProcessor.Unity
         }
         public object GetHandler(Type constructed)
         {
-            return Container.Resolve(constructed);
+            using (var child = Container.CreateChildContainer())
+            {
+                return child.Resolve(constructed);
+            }
         }
 
         private void ConfigureUnity(IEnumerable<Assembly> assemblies)
