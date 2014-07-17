@@ -42,7 +42,7 @@ namespace AzureWebrole.MessageProcessor.Core
         int MaxMessageRetries { get; }
 
     }
-    public interface IMessageHandlerResolver
+    public interface IMessageHandlerResolver : IDisposable
     {
 
         object GetHandler(Type constructed);
@@ -86,15 +86,15 @@ namespace AzureWebrole.MessageProcessor.Core
     public class MessageProcessorClient<MessageType> : IDisposable
     {
         private readonly IMessageProcessorClientProvider<MessageType> _provider;
-        private readonly IMessageHandlerResolver _resolver;
+        private readonly Func<IMessageHandlerResolver> _resolverProvider;
 
 
         public IMessageProcessorNotifications Notifications { get; set; }
 
-        public MessageProcessorClient(IMessageProcessorClientProvider<MessageType> provider, IMessageHandlerResolver resolver)
+        public MessageProcessorClient(IMessageProcessorClientProvider<MessageType> provider, Func<IMessageHandlerResolver> resolverProvider)
         {
             _provider = provider;
-            _resolver = resolver;
+            _resolverProvider = resolverProvider;
 
             Notifications = new DefaultNotifications();
         }
@@ -184,7 +184,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
         }
 
-        public Task ProcessMessageAsync<T>(T message) where T : BaseMessage
+        public async Task ProcessMessageAsync<T>(T message) where T : BaseMessage
         {
             //Voodoo to construct the right message handler type
             Type handlerType = typeof(IMessageHandler<>);
@@ -193,11 +193,16 @@ namespace AzureWebrole.MessageProcessor.Core
             //NOTE: Could just use reflection here to locate and create an instance
             // of the desired message handler type here if you didn't want to use an IOC container...
             //Get an instance of the message handler type
-            
-            var handler = _resolver.GetHandler(constructed);
-            //Handle the message
-            var methodInfo = constructed.GetMethod("HandleAsync");
-            return methodInfo.Invoke(handler, new[] { message }) as Task;
+
+            using (var resolver = _resolverProvider())
+            {
+                var handler = resolver.GetHandler(constructed); 
+                //Handle the message
+                var methodInfo = constructed.GetMethod("HandleAsync");
+                var task = methodInfo.Invoke(handler, new[] { message }) as Task;
+                if (task != null)
+                    await task;
+            }
         }
 
 
@@ -206,6 +211,7 @@ namespace AzureWebrole.MessageProcessor.Core
         {
             CompletedEvent.Set(); //Runner shoul now complete.
             _provider.Dispose();
+
         }
     }
 }

@@ -31,5 +31,10 @@ namespace AzureWebRole.MessageProcessor.Ninject
                   .BindAllInterfaces());
             NinjectKernel = kernel;
         }
+
+        public void Dispose()
+        {
+           
+        }
     }
 }

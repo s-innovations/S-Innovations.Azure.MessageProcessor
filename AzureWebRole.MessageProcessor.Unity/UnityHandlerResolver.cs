@@ -15,6 +15,7 @@ namespace AzureWebRole.MessageProcessor.Unity
     public class UnityHandlerResolver : IMessageHandlerResolver
     {
         private IUnityContainer Container;
+    
 
         public UnityHandlerResolver(params Assembly[] assemblies)
         {
@@ -26,10 +27,9 @@ namespace AzureWebRole.MessageProcessor.Unity
         }
         public object GetHandler(Type constructed)
         {
-            using (var child = Container.CreateChildContainer())
-            {
-                return child.Resolve(constructed);
-            }
+
+            return Container.Resolve(constructed);
+
         }
 
         private void ConfigureUnity(IEnumerable<Assembly> assemblies)
@@ -52,8 +52,13 @@ namespace AzureWebRole.MessageProcessor.Unity
                     }
                 }
             }
-;
+
             Container = kernel;
+        }
+
+        public void Dispose()
+        {
+            Container.Dispose();
         }
     }
 }
