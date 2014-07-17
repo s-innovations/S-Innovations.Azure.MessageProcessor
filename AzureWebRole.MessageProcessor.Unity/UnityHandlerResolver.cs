@@ -23,7 +23,7 @@ namespace AzureWebRole.MessageProcessor.Unity
         }
         public UnityHandlerResolver(IUnityContainer container)
         {
-            Container = container;
+            Container = container.CreateChildContainer();
         }
         public object GetHandler(Type constructed)
         {
