@@ -206,6 +206,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 }
             };
 
+            Trace.TraceInformation("Creating {0} Topics", options.TopicScaleCount.Value);
+
             for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
             {
 
@@ -218,6 +220,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                         NameSpaceManager = GetNamespaceManagerForCorrelationId(mapping.Key)
                     }).GroupBy(mapping => mapping.NameSpaceManager.Address.AbsoluteUri))
                 {
+                    Trace.TraceInformation("With {0} ConnectionString Groups", group.Count());
                     foreach (var mapping in group)
                     {
 
@@ -235,6 +238,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                         if (topic != null)
                             forwardPath = topic.Path;
 
+                        Trace.TraceInformation("Found Forward Path {0}", forwardPath);
+
                         options.SubscriptionDescription.Name = originalSubscriptionName + "2" + forwardPath;
                         options.SubscriptionDescription.TopicPath = options.TopicDescription.Path;
                         options.SubscriptionDescription.ForwardTo = forwardPath;
@@ -242,7 +247,12 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
                         if (!await namespaceManager.SubscriptionExistsAsync(options.TopicDescription.Path, options.SubscriptionDescription.Name))
                         {
+                            Trace.TraceInformation("Creating Subscription {0}", options.SubscriptionDescription.Name);
                             await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription, new CorrelationFilter(mapping.Map.Key));
+                        }
+                        else
+                        {
+                            Trace.TraceInformation("Subscription {0} Already Created", options.SubscriptionDescription.Name);
                         }
 
                     }
