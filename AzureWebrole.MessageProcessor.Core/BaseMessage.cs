@@ -11,6 +11,15 @@ namespace AzureWebrole.MessageProcessor.Core
     [Serializable]
     public abstract class BaseMessage
     {
+        /// <summary>
+        /// A message ID for the current message.
+        /// </summary>
+        public Guid MessageId { get; internal set; }
+        
+        /// <summary>
+        /// Used when provider dont support serialization
+        /// </summary>
+        /// <returns></returns>
         public byte[] ToBinary()
         {
             BinaryFormatter bf = new BinaryFormatter();

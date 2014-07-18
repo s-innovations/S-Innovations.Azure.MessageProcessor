@@ -28,6 +28,8 @@ namespace AzureWebrole.MessageProcessor.Core
         Task MoveToDeadLetterAsync(MessageType message, string p1, string p2);
 
         Task RenewLockAsync(MessageType message);
+
+        Task<Guid> GetMessageIdForMessageAsync(MessageType message);
     }
     public interface IMessageProcessorClientProvider<TOptions, MessageType> : IDisposable where TOptions : IMessageProcessorProviderOptions<MessageType>
     {
@@ -143,6 +145,9 @@ namespace AzureWebrole.MessageProcessor.Core
         public async Task OnMessageAsync(MessageType message)
         {
             BaseMessage baseMessage = _provider.FromMessage<BaseMessage>(message);
+
+            baseMessage.MessageId = await _provider.GetMessageIdForMessageAsync(message);
+
 
             Trace.TraceInformation("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
 

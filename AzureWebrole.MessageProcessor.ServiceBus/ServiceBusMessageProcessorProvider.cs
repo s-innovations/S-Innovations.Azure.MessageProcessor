@@ -495,5 +495,11 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         {
             return message.RenewLockAsync();
         }
+
+
+        public Task<Guid> GetMessageIdForMessageAsync(BrokeredMessage message)
+        {
+            return Task.FromResult(new Guid(message.MessageId));
+        }
     }
 }
