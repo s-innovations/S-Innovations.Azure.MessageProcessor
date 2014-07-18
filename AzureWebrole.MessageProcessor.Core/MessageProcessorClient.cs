@@ -165,7 +165,8 @@ namespace AzureWebrole.MessageProcessor.Core
     
             bool loop = true;
 
-            var task = ProcessMessageAsync(baseMessage).ContinueWith((t) => { loop = false; });
+            var processingTask = ProcessMessageAsync(baseMessage);
+            var task = processingTask.ContinueWith((t) => { loop = false; });
 
             while (loop)
             {
@@ -173,6 +174,13 @@ namespace AzureWebrole.MessageProcessor.Core
                 if (t != task)
                     await _provider.RenewLockAsync(message);
             }
+
+            if (processingTask.IsFaulted)
+            {
+                Trace.TraceError("{0}", processingTask.Exception);
+            }
+
+
 
             Trace.TraceInformation("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
             //Everything ok, so take it off the queue
@@ -198,7 +206,8 @@ namespace AzureWebrole.MessageProcessor.Core
             using (var resolver = _resolverProvider())
             {
                 Trace.TraceInformation("Getting Handler");
-                var handler = resolver.GetHandler(constructed); 
+                var handler = resolver.GetHandler(constructed);
+                Trace.TraceInformation("Got Handler {0}",handler);
                 //Handle the message
 
                 var handlertest = handler as IMessageHandler<T>;
