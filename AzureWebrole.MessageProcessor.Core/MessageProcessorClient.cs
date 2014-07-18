@@ -193,11 +193,17 @@ namespace AzureWebrole.MessageProcessor.Core
             //NOTE: Could just use reflection here to locate and create an instance
             // of the desired message handler type here if you didn't want to use an IOC container...
             //Get an instance of the message handler type
-
+          
             using (var resolver = _resolverProvider())
             {
                 var handler = resolver.GetHandler(constructed); 
                 //Handle the message
+
+                var handlertest = handler as IMessageHandler<T>;
+
+                Trace.TraceInformation("{0} = {1}", handler.GetType(), (handlertest??new object()).GetType());
+        
+
                 var methodInfo = constructed.GetMethods()
                     .FirstOrDefault(info => info.Name.Equals("HandleAsync") && info.GetParameters().Any(param => param.ParameterType == typeArgs[0]));
 
