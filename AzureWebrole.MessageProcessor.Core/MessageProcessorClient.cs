@@ -198,9 +198,11 @@ namespace AzureWebrole.MessageProcessor.Core
             {
                 var handler = resolver.GetHandler(constructed); 
                 //Handle the message
-                var methodInfo = constructed.GetMethod("HandleAsync");
+                var methodInfo = constructed.GetMethods()
+                    .FirstOrDefault(info => info.Name.Equals("HandleAsync") && info.GetParameters().Any(param => param.ParameterType == typeArgs[0]));
 
-                Trace.TraceInformation("Found HandleAsnyc {0} on {1}", methodInfo, handler.GetType().Name);
+                if (methodInfo == null)
+                    throw new Exception("HandleAsync not fond for the messagetype");               
 
                 var task = methodInfo.Invoke(handler, new[] { message }) as Task;
                 if (task != null)
