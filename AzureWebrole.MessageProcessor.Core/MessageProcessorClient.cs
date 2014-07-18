@@ -175,6 +175,8 @@ namespace AzureWebrole.MessageProcessor.Core
                     await _provider.RenewLockAsync(message);
             }
 
+            await processingTask; // Make it throw exception
+
             if (processingTask.IsFaulted)
             {
                 Trace.TraceError("{0}", processingTask.Exception);
