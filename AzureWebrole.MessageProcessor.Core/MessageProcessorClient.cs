@@ -85,18 +85,29 @@ namespace AzureWebrole.MessageProcessor.Core
              return Task.FromResult(0);
          }
     }
+    public class MessageProcessorClientOptions<MessageType>
+    {
+        public MessageProcessorClientOptions()
+        {
+        }
+        public IMessageProcessorClientProvider<MessageType> Provider{get;set;}
+
+        public Func<IMessageHandlerResolver> ResolverProvider { get; set; }
+
+        public TimeSpan? IdleTimeCheckInterval { get; set; }
+    }
     public class MessageProcessorClient<MessageType> : IDisposable
     {
-        private readonly IMessageProcessorClientProvider<MessageType> _provider;
-        private readonly Func<IMessageHandlerResolver> _resolverProvider;
-
+     //   private readonly IMessageProcessorClientProvider<MessageType> _provider;
+    //    private readonly Func<IMessageHandlerResolver> _resolverProvider;
+       private readonly MessageProcessorClientOptions<MessageType> _options;
 
         public IMessageProcessorNotifications Notifications { get; set; }
 
-        public MessageProcessorClient(IMessageProcessorClientProvider<MessageType> provider, Func<IMessageHandlerResolver> resolverProvider)
+        public MessageProcessorClient(MessageProcessorClientOptions<MessageType> options)
         {
-            _provider = provider;
-            _resolverProvider = resolverProvider;
+           // _provider = provider;
+          //  _resolverProvider = resolverProvider;
 
             Notifications = new DefaultNotifications();
         }
@@ -115,18 +126,20 @@ namespace AzureWebrole.MessageProcessor.Core
         }
         public void AddMessage<T>(T Message) where T : BaseMessage
         {
-            _provider.SendMessageAsync<T>(Message);
+            _options.Provider.SendMessageAsync<T>(Message);
         }
         public void AddMessages<T>(IEnumerable<T> Messages) where T : BaseMessage
         {
-            _provider.SendMessagesAsync(Messages);
+            _options.Provider.SendMessagesAsync(Messages);
         }
         private void StartSubscriptionClient()
         {
             try
             {
 
-                _provider.StartListening(OnMessageAsync);
+                _options.Provider.StartListening(OnMessageAsync);
+                
+                SetIdleCheckTimer();
 
                 if (source != null)
                 {
@@ -142,16 +155,50 @@ namespace AzureWebrole.MessageProcessor.Core
             }
         }
 
+
+        private DateTimeOffset _lastMessageRecieved;
+        private int _isWorking = 0;
+        private System.Timers.Timer _idleCheckTimer;
+     
+        private void OnIdleCheckTimer(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                Trace.TraceInformation("Been running ilde for {0} minutes. Is Working: {1}", DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved).Minutes, _isWorking);
+                
+            }
+            finally
+            {
+
+                SetIdleCheckTimer();
+
+            }
+        }
+        private void SetIdleCheckTimer()
+        {
+            if (!_options.IdleTimeCheckInterval.HasValue)
+                return;
+
+            Trace.TraceInformation("Setting IdleCheck timer");
+            _idleCheckTimer = new System.Timers.Timer(_options.IdleTimeCheckInterval.Value.TotalMilliseconds);
+            _idleCheckTimer.AutoReset = false;
+            _idleCheckTimer.Elapsed += new System.Timers.ElapsedEventHandler(OnIdleCheckTimer);
+            _idleCheckTimer.Start();
+        }
+
+
+
         public async Task OnMessageAsync(MessageType message)
         {
-            BaseMessage baseMessage = _provider.FromMessage<BaseMessage>(message);
-
-            baseMessage.MessageId = await _provider.GetMessageIdForMessageAsync(message);
+            BaseMessage baseMessage = _options.Provider.FromMessage<BaseMessage>(message);
+            baseMessage.MessageId = await _options.Provider.GetMessageIdForMessageAsync(message);
+            _lastMessageRecieved = DateTimeOffset.UtcNow;
+            Interlocked.Increment(ref _isWorking);
 
 
             Trace.TraceInformation("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
 
-            if (await _provider.GetDeliveryCountAsync(message) > _provider.Options.MaxMessageRetries)
+            if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
             {
                 Trace.TraceInformation("Moving message : {0} to deadletter", message);
                 var moveToDeadLetterEvent = new MovingToDeadLetter() { Message = baseMessage };
@@ -161,7 +208,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
                 if (!moveToDeadLetterEvent.Cancel)
                 {
-                    await _provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
+                    await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
                     return;
                 }
             }
@@ -176,19 +223,19 @@ namespace AzureWebrole.MessageProcessor.Core
             {
                 var t = await Task.WhenAny(task, Task.Delay(30000));
                 if (t != task)
-                    await _provider.RenewLockAsync(message);
+                    await _options.Provider.RenewLockAsync(message);
             }
 
             await processingTask; // Make it throw exception
 
             Trace.TraceInformation("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
             //Everything ok, so take it off the queue
-            await _provider.CompleteMessageAsync(message);
+            await _options.Provider.CompleteMessageAsync(message);
            
             if(Notifications!=null)
                 await Notifications.MessageCompletedAsync(new MessageCompletedNotification { Message = baseMessage });
 
-
+            Interlocked.Decrement(ref _isWorking);
         }
 
         public async Task ProcessMessageAsync<T>(T message) where T : BaseMessage
@@ -202,7 +249,7 @@ namespace AzureWebrole.MessageProcessor.Core
             // of the desired message handler type here if you didn't want to use an IOC container...
             //Get an instance of the message handler type
           
-            using (var resolver = _resolverProvider())
+            using (var resolver = _options.ResolverProvider())
             {
                 var handler = resolver.GetHandler(constructed);
                 Trace.TraceInformation("Got Handler {0}",handler);
@@ -224,7 +271,7 @@ namespace AzureWebrole.MessageProcessor.Core
         public void Dispose()
         {
             CompletedEvent.Set(); //Runner shoul now complete.
-            _provider.Dispose();
+            _options.Provider.Dispose();
 
         }
     }

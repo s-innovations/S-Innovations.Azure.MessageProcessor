@@ -320,7 +320,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 throw;
             }
             
-            var messageOptions = new OnMessageOptions { MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
+            var messageOptions = new OnMessageOptions {  MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
 
