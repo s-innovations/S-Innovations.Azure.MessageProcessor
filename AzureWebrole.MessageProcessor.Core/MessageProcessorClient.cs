@@ -200,7 +200,7 @@ namespace AzureWebrole.MessageProcessor.Core
                 //Handle the message
                 var methodInfo = constructed.GetMethod("HandleAsync");
 
-                Trace.TraceInformation("Found HandleAsnyc {0} on ", methodInfo, handler.GetType().Name);
+                Trace.TraceInformation("Found HandleAsnyc {0} on {1}", methodInfo, handler.GetType().Name);
 
                 var task = methodInfo.Invoke(handler, new[] { message }) as Task;
                 if (task != null)
