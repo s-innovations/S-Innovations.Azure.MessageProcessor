@@ -161,8 +161,7 @@ namespace AzureWebrole.MessageProcessor.Core
                 }
             }
 
-
-    
+                
             bool loop = true;
 
             var processingTask = ProcessMessageAsync(baseMessage);
@@ -177,13 +176,6 @@ namespace AzureWebrole.MessageProcessor.Core
 
             await processingTask; // Make it throw exception
 
-            if (processingTask.IsFaulted)
-            {
-                Trace.TraceError("{0}", processingTask.Exception);
-            }
-
-
-
             Trace.TraceInformation("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
             //Everything ok, so take it off the queue
             await _provider.CompleteMessageAsync(message);
@@ -196,7 +188,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
         public async Task ProcessMessageAsync<T>(T message) where T : BaseMessage
         {
-            Trace.TraceInformation("Constructing Handler Type");
+         
             //Voodoo to construct the right message handler type
             Type handlerType = typeof(IMessageHandler<>);
             Type[] typeArgs = { message.GetType() };
@@ -207,15 +199,8 @@ namespace AzureWebrole.MessageProcessor.Core
           
             using (var resolver = _resolverProvider())
             {
-                Trace.TraceInformation("Getting Handler");
                 var handler = resolver.GetHandler(constructed);
                 Trace.TraceInformation("Got Handler {0}",handler);
-                //Handle the message
-
-                var handlertest = handler as IMessageHandler<T>;
-
-                Trace.TraceInformation("{0} = {1}", handler.GetType(), (handlertest??new object()).GetType());
-        
 
                 var methodInfo = constructed.GetMethods()
                     .FirstOrDefault(info => info.Name.Equals("HandleAsync") && info.GetParameters().Any(param => param.ParameterType == typeArgs[0]));
