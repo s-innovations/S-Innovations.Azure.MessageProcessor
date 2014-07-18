@@ -211,7 +211,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
             {
 
-
+                Trace.TraceInformation("With '{0}' as filters.", string.Join(", ", options.CorrelationToQueueMapping.Keys));
 
                 foreach (var group in options.CorrelationToQueueMapping
                     .Select(mapping => new
