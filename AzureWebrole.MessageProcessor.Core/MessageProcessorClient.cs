@@ -186,6 +186,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
         public async Task ProcessMessageAsync<T>(T message) where T : BaseMessage
         {
+            Trace.TraceInformation("Constructing Handler Type");
             //Voodoo to construct the right message handler type
             Type handlerType = typeof(IMessageHandler<>);
             Type[] typeArgs = { message.GetType() };
@@ -196,6 +197,7 @@ namespace AzureWebrole.MessageProcessor.Core
           
             using (var resolver = _resolverProvider())
             {
+                Trace.TraceInformation("Getting Handler");
                 var handler = resolver.GetHandler(constructed); 
                 //Handle the message
 
