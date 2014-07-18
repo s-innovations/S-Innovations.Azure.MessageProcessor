@@ -108,7 +108,7 @@ namespace AzureWebrole.MessageProcessor.Core
         {
            // _provider = provider;
           //  _resolverProvider = resolverProvider;
-
+            _options = options;
             Notifications = new DefaultNotifications();
         }
         private ManualResetEvent CompletedEvent = new ManualResetEvent(false);
