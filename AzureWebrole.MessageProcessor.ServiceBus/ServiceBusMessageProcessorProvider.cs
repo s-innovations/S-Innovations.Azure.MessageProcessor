@@ -99,7 +99,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 var r = R.Next(_scaleCount);
                 TopicClient client = GetClient(group.Key, r);
 
-                Trace.WriteLine(string.Format("Posting Messages onto Topic {1} '{0}'",client));
+                Trace.WriteLine(string.Format("Posting Messages onto Topic {1} '{0}'",client.Path,r));
 
                 return client.SendBatchAsync(messages);
             });
