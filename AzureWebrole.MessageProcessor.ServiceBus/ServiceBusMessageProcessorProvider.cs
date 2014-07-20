@@ -25,6 +25,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         private Random R;
         private int _scaleCount = 1;
         private readonly Dictionary<string, Lazy<TopicClient>[]> LazyTopicClients;
+      
         //private readonly NamespaceManager namespaceManager;
         public ScaledTopicClient(ServiceBusMessageProcessorProviderOptions options)
         {
@@ -45,6 +46,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             LazyTopicClients.Add(DEFAULT_COORELATION_ID, CreateTopicClientsForConnectionString(
                    options.TopicScaleCount.Value, options.TopicDescription.Path, options.ConnectionString));
 
+           
         }
 
         private Lazy<TopicClient>[] CreateTopicClientsForConnectionString(int count, string prefix, string conn)
@@ -320,7 +322,13 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 throw;
             }
             
-            var messageOptions = new OnMessageOptions {  MaxConcurrentCalls = this.options.MaxConcurrentProcesses, AutoComplete = false };
+            var messageOptions = new OnMessageOptions {  
+                MaxConcurrentCalls = this.options.MaxConcurrentProcesses, 
+                AutoComplete = false, 
+            };
+            if (Options.AutoRenewLockTime.HasValue)
+                messageOptions.AutoRenewTimeout = Options.AutoRenewLockTime.Value;
+
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
 

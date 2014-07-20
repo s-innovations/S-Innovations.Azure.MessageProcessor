@@ -82,5 +82,12 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         /// </example>
         /// </summary>
         public IDictionary<string, EntityDescription> CorrelationToQueueMapping { get; set; }
+
+
+        public TimeSpan? AutoRenewLockTime
+        {
+            get;
+            set;
+        }
     }
 }

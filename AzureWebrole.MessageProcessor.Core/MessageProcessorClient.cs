@@ -39,10 +39,8 @@ namespace AzureWebrole.MessageProcessor.Core
     }
     public interface IMessageProcessorProviderOptions<MessageType>
     {
-
-
         int MaxMessageRetries { get; }
-
+        TimeSpan? AutoRenewLockTime { get; }
     }
     public interface IMessageHandlerResolver : IDisposable
     {
@@ -214,17 +212,18 @@ namespace AzureWebrole.MessageProcessor.Core
             }
 
                 
-            bool loop = true;
+        //    bool loop = true;
 
-            var processingTask = ProcessMessageAsync(baseMessage);
-            var task = processingTask.ContinueWith((t) => { loop = false; });
+            var processingTask = ProcessMessageAsync(baseMessage);        
 
-            while (loop)
-            {
-                var t = await Task.WhenAny(task, Task.Delay(30000));
-                if (t != task)
-                    await _options.Provider.RenewLockAsync(message);
-            }
+            //var task = processingTask.ContinueWith((t) => { loop = false; });
+
+            //while (loop)
+            //{
+            //    var t = await Task.WhenAny(task, Task.Delay(30000));
+            //    if (t != task)
+            //        await _options.Provider.RenewLockAsync(message);
+            //}
 
             await processingTask; // Make it throw exception
 
