@@ -66,8 +66,8 @@ namespace AzureWebrole.MessageProcessor.Core
 
     public class DefaultNotifications : IMessageProcessorNotifications
     {
-         Func<MovingToDeadLetter,Task> MovingMessageToDeadLetterFunc { get; set; }
-         Func<MessageCompletedNotification,Task> MessageCompletedFunc { get; set; }
+         public Func<MovingToDeadLetter,Task> MovingMessageToDeadLetterFunc { get; set; }
+         public Func<MessageCompletedNotification, Task> MessageCompletedFunc { get; set; }
 
          public Task MovingMessageToDeadLetterAsync(MovingToDeadLetter moveToDeadLetterEvent)
          {
