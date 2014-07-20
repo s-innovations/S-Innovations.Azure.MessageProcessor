@@ -87,7 +87,9 @@ namespace AzureWebrole.MessageProcessor.Core
     {
         public MessageProcessorClientOptions()
         {
+            Notifications = new DefaultNotifications();
         }
+        public IMessageProcessorNotifications Notifications { get; set; }
         public IMessageProcessorClientProvider<MessageType> Provider{get;set;}
 
         public Func<IMessageHandlerResolver> ResolverProvider { get; set; }
@@ -100,14 +102,14 @@ namespace AzureWebrole.MessageProcessor.Core
     //    private readonly Func<IMessageHandlerResolver> _resolverProvider;
        private readonly MessageProcessorClientOptions<MessageType> _options;
 
-        public IMessageProcessorNotifications Notifications { get; set; }
+      //  public IMessageProcessorNotifications Notifications { get; set; }
 
         public MessageProcessorClient(MessageProcessorClientOptions<MessageType> options)
         {
            // _provider = provider;
           //  _resolverProvider = resolverProvider;
             _options = options;
-            Notifications = new DefaultNotifications();
+         
         }
         private ManualResetEvent CompletedEvent = new ManualResetEvent(false);
 
@@ -201,8 +203,8 @@ namespace AzureWebrole.MessageProcessor.Core
                 Trace.TraceInformation("Moving message : {0} to deadletter", message);
                 var moveToDeadLetterEvent = new MovingToDeadLetter() { Message = baseMessage };
 
-                if (Notifications != null)
-                    await Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
+                if (_options.Notifications != null)
+                    await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
 
                 if (!moveToDeadLetterEvent.Cancel)
                 {
@@ -230,9 +232,9 @@ namespace AzureWebrole.MessageProcessor.Core
             Trace.TraceInformation("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
             //Everything ok, so take it off the queue
             await _options.Provider.CompleteMessageAsync(message);
-           
-            if(Notifications!=null)
-                await Notifications.MessageCompletedAsync(new MessageCompletedNotification { Message = baseMessage });
+
+            if (_options.Notifications != null)
+                await _options.Notifications.MessageCompletedAsync(new MessageCompletedNotification { Message = baseMessage });
 
             Interlocked.Decrement(ref _isWorking);
         }
