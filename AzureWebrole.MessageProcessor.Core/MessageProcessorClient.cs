@@ -193,7 +193,7 @@ namespace AzureWebrole.MessageProcessor.Core
             BaseMessage baseMessage = _options.Provider.FromMessage<BaseMessage>(message);
             baseMessage.MessageId = await _options.Provider.GetMessageIdForMessageAsync(message);
             _lastMessageRecieved = DateTimeOffset.UtcNow;
-            Interlocked.Increment(ref _isWorking);
+          
 
 
             Trace.TraceInformation("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
@@ -212,7 +212,7 @@ namespace AzureWebrole.MessageProcessor.Core
                     return;
                 }
             }
-
+            Interlocked.Increment(ref _isWorking);
                 
         //    bool loop = true;
 
