@@ -214,18 +214,18 @@ namespace AzureWebrole.MessageProcessor.Core
             }
             Interlocked.Increment(ref _isWorking);
                 
-        //    bool loop = true;
+            bool loop = true;
 
             var processingTask = ProcessMessageAsync(baseMessage);        
 
-            //var task = processingTask.ContinueWith((t) => { loop = false; });
+            var task = processingTask.ContinueWith((t) => { loop = false; });
 
-            //while (loop)
-            //{
-            //    var t = await Task.WhenAny(task, Task.Delay(30000));
-            //    if (t != task)
-            //        await _options.Provider.RenewLockAsync(message);
-            //}
+            while (loop)
+            {
+                var t = await Task.WhenAny(task, Task.Delay(30000));
+                if (t != task)
+                    await _options.Provider.RenewLockAsync(message);
+            }
 
             await processingTask; // Make it throw exception
 

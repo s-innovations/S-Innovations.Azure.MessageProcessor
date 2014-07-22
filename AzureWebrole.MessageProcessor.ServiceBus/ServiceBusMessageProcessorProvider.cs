@@ -326,8 +326,8 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 MaxConcurrentCalls = this.options.MaxConcurrentProcesses, 
                 AutoComplete = false, 
             };
-            if (Options.AutoRenewLockTime.HasValue)
-                messageOptions.AutoRenewTimeout = Options.AutoRenewLockTime.Value;
+           // if (Options.AutoRenewLockTime.HasValue)
+           //     messageOptions.AutoRenewTimeout = Options.AutoRenewLockTime.Value;
 
             messageOptions.ExceptionReceived += options_ExceptionReceived;
 
