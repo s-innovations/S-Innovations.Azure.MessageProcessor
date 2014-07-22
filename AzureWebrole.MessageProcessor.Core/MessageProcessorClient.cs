@@ -29,7 +29,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
         Task RenewLockAsync(MessageType message);
 
-        Task<Guid> GetMessageIdForMessageAsync(MessageType message);
+        Task<string> GetMessageIdForMessageAsync(MessageType message);
     }
     public interface IMessageProcessorClientProvider<TOptions, MessageType> : IDisposable where TOptions : IMessageProcessorProviderOptions<MessageType>
     {

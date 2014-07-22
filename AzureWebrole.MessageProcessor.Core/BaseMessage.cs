@@ -14,7 +14,7 @@ namespace AzureWebrole.MessageProcessor.Core
         /// <summary>
         /// A message ID for the current message.
         /// </summary>
-        public Guid MessageId { get; internal set; }
+        public string MessageId { get; internal set; }
         
         /// <summary>
         /// Used when provider dont support serialization

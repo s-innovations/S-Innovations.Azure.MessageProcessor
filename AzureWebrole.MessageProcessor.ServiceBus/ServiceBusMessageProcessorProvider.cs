@@ -505,9 +505,9 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         }
 
 
-        public Task<Guid> GetMessageIdForMessageAsync(BrokeredMessage message)
+        public Task<string> GetMessageIdForMessageAsync(BrokeredMessage message)
         {
-            return Task.FromResult(new Guid(message.MessageId));
+            return Task.FromResult(message.MessageId);
         }
     }
 }
