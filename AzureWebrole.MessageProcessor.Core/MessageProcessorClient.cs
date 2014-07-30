@@ -193,10 +193,8 @@ namespace AzureWebrole.MessageProcessor.Core
             BaseMessage baseMessage = _options.Provider.FromMessage<BaseMessage>(message);
             baseMessage.MessageId = await _options.Provider.GetMessageIdForMessageAsync(message);
             _lastMessageRecieved = DateTimeOffset.UtcNow;
-          
-
-
-            Trace.TraceInformation("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
+            
+            Trace.WriteLine(string.Format("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
 
             if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
             {
@@ -229,7 +227,7 @@ namespace AzureWebrole.MessageProcessor.Core
 
             await processingTask; // Make it throw exception
 
-            Trace.TraceInformation("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
+            Trace.WriteLine(string.Format("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
             //Everything ok, so take it off the queue
             await _options.Provider.CompleteMessageAsync(message);
 
@@ -253,7 +251,7 @@ namespace AzureWebrole.MessageProcessor.Core
             using (var resolver = _options.ResolverProvider())
             {
                 var handler = resolver.GetHandler(constructed);
-                Trace.TraceInformation("Got Handler {0}",handler);
+                Trace.WriteLine(string.Format("Got Handler {0}",handler));
 
                 var methodInfo = constructed.GetMethods()
                     .FirstOrDefault(info => info.Name.Equals("HandleAsync") && info.GetParameters().Any(param => param.ParameterType == typeArgs[0]));
