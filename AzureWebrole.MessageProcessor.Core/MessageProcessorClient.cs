@@ -291,8 +291,7 @@ namespace AzureWebrole.MessageProcessor.Core
             // of the desired message handler type here if you didn't want to use an IOC container...
             //Get an instance of the message handler type
 
-            Trace.TraceInformation("{0} == {1}", message.GetType().Name, typeof(T).Name);
-
+           
             using (var resolver = _options.ResolverProvider())
             {
                 var handler = resolver.GetHandler(constructed);
