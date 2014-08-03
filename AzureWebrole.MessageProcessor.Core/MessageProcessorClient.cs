@@ -66,7 +66,10 @@ namespace AzureWebrole.MessageProcessor.Core
         public Type HandlerType { get; set; }
         public Object Handler { get; set; }
     }
-
+    public class IdleRunningNotification
+    {
+        public TimeSpan IdleTime { get; set; }
+    }
     public interface IMessageProcessorNotifications
     {
 
@@ -74,33 +77,42 @@ namespace AzureWebrole.MessageProcessor.Core
         Task MessageCompletedAsync(MessageCompletedNotification messageCompletedNotification);
 
         Task HandlerWasNotFoundAsync(HandlerNotFoundNotification handlerNotFoundNotification);
-
+        Task RunningIdleAsync(IdleRunningNotification idleRunningNotification);
     }
 
     public class DefaultNotifications : IMessageProcessorNotifications
     {
-        public Func<MovingToDeadLetter, Task> MovingMessageToDeadLetterFunc { get; set; }
-        public Func<MessageCompletedNotification, Task> MessageCompletedFunc { get; set; }
-        public Func<HandlerNotFoundNotification, Task> HandlerNotFoundNotificationFunc { get; set; }
+        public Func<MovingToDeadLetter, Task> OnMovingMessageToDeadLetter { get; set; }
+        public Func<MessageCompletedNotification, Task> OnMessageCompleted { get; set; }
+        public Func<HandlerNotFoundNotification, Task> OnHandlerNotFoundNotification { get; set; }
+        public Func<IdleRunningNotification, Task> OnIdleNotification { get; set; }
 
         public Task MovingMessageToDeadLetterAsync(MovingToDeadLetter moveToDeadLetterEvent)
         {
-            if (MovingMessageToDeadLetterFunc != null)
-                return MovingMessageToDeadLetterFunc(moveToDeadLetterEvent);
+            if (OnMovingMessageToDeadLetter != null)
+                return OnMovingMessageToDeadLetter(moveToDeadLetterEvent);
             return Task.FromResult(0);
         }
 
         public Task MessageCompletedAsync(MessageCompletedNotification messageCompletedNotification)
         {
-            if (MessageCompletedFunc != null)
-                return MessageCompletedFunc(messageCompletedNotification);
+            if (OnMessageCompleted != null)
+                return OnMessageCompleted(messageCompletedNotification);
             return Task.FromResult(0);
         }
 
         public Task HandlerWasNotFoundAsync(HandlerNotFoundNotification handlerNotFoundNotification)
         {
-            if (HandlerNotFoundNotificationFunc != null)
-                return HandlerNotFoundNotificationFunc(handlerNotFoundNotification);
+            if (OnHandlerNotFoundNotification != null)
+                return OnHandlerNotFoundNotification(handlerNotFoundNotification);
+            return Task.FromResult(0);
+        }
+
+
+        public Task RunningIdleAsync(IdleRunningNotification idleRunningNotification)
+        {
+            if (OnIdleNotification != null)
+                return OnIdleNotification(idleRunningNotification);
             return Task.FromResult(0);
         }
     }
@@ -185,8 +197,10 @@ namespace AzureWebrole.MessageProcessor.Core
         {
             try
             {
-                Trace.TraceInformation("Been running ilde for {0} minutes. Is Working: {1}", DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved).Minutes, _isWorking);
-
+                Trace.WriteLine(string.Format("Been running ilde for {0} minutes. Is Working: {1}",
+                    DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved).Minutes, _isWorking));
+                if (_isWorking == 0)
+                    _options.Notifications.RunningIdleAsync(new IdleRunningNotification { IdleTime = DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved) });
             }
             finally
             {
@@ -200,7 +214,7 @@ namespace AzureWebrole.MessageProcessor.Core
             if (!_options.IdleTimeCheckInterval.HasValue)
                 return;
 
-            Trace.TraceInformation("Setting IdleCheck timer");
+
             _idleCheckTimer = new System.Timers.Timer(_options.IdleTimeCheckInterval.Value.TotalMilliseconds);
             _idleCheckTimer.AutoReset = false;
             _idleCheckTimer.Elapsed += new System.Timers.ElapsedEventHandler(OnIdleCheckTimer);
