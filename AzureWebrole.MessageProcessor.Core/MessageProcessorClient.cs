@@ -49,20 +49,29 @@ namespace AzureWebrole.MessageProcessor.Core
     }
     public class BaseNotificationMessage
     {
+        public BaseNotificationMessage(IMessageHandlerResolver resolver)
+        {
+            Resolver = resolver;
+        }
         public BaseMessage Message { get; set; }
+        public IMessageHandlerResolver Resolver {get;set;}
+
     }
-    public class MovingToDeadLetter : BaseNotificationMessage
+    public class MovingToDeadLetterNotification : BaseNotificationMessage
     {
+
+        public MovingToDeadLetterNotification(IMessageHandlerResolver resolver) : base(resolver) { }
         public bool Cancel { get; set; }
 
     }
     public class MessageCompletedNotification : BaseNotificationMessage
     {
-
+          public MessageCompletedNotification(IMessageHandlerResolver resolver) : base(resolver) { }
         public TimeSpan Elapsed { get; set; }
     }
     public class HandlerNotFoundNotification : BaseNotificationMessage
     {
+        public HandlerNotFoundNotification(IMessageHandlerResolver resolver) : base(resolver) { }
         public Type HandlerType { get; set; }
         public Object Handler { get; set; }
     }
@@ -73,7 +82,7 @@ namespace AzureWebrole.MessageProcessor.Core
     public interface IMessageProcessorNotifications
     {
 
-        Task MovingMessageToDeadLetterAsync(MovingToDeadLetter moveToDeadLetterEvent);
+        Task MovingMessageToDeadLetterAsync(MovingToDeadLetterNotification moveToDeadLetterEvent);
         Task MessageCompletedAsync(MessageCompletedNotification messageCompletedNotification);
 
         Task HandlerWasNotFoundAsync(HandlerNotFoundNotification handlerNotFoundNotification);
@@ -82,12 +91,12 @@ namespace AzureWebrole.MessageProcessor.Core
 
     public class DefaultNotifications : IMessageProcessorNotifications
     {
-        public Func<MovingToDeadLetter, Task> OnMovingMessageToDeadLetter { get; set; }
+        public Func<MovingToDeadLetterNotification, Task> OnMovingMessageToDeadLetter { get; set; }
         public Func<MessageCompletedNotification, Task> OnMessageCompleted { get; set; }
         public Func<HandlerNotFoundNotification, Task> OnHandlerNotFoundNotification { get; set; }
         public Func<IdleRunningNotification, Task> OnIdleNotification { get; set; }
 
-        public Task MovingMessageToDeadLetterAsync(MovingToDeadLetter moveToDeadLetterEvent)
+        public Task MovingMessageToDeadLetterAsync(MovingToDeadLetterNotification moveToDeadLetterEvent)
         {
             if (OnMovingMessageToDeadLetter != null)
                 return OnMovingMessageToDeadLetter(moveToDeadLetterEvent);
@@ -232,55 +241,59 @@ namespace AzureWebrole.MessageProcessor.Core
 
             Trace.WriteLine(string.Format("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
 
-            if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
+            using (var resolver = _options.ResolverProvider())
             {
-                Trace.TraceInformation("Moving message : {0} to deadletter", message);
-                var moveToDeadLetterEvent = new MovingToDeadLetter() { Message = baseMessage };
 
-                if (_options.Notifications != null)
-                    await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
-
-                if (!moveToDeadLetterEvent.Cancel)
+                if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
                 {
-                    await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
-                    return;
+                    Trace.TraceInformation("Moving message : {0} to deadletter", message);
+                    var moveToDeadLetterEvent = new MovingToDeadLetterNotification(resolver) { Message = baseMessage };
+
+                    if (_options.Notifications != null)
+                        await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
+
+                    if (!moveToDeadLetterEvent.Cancel)
+                    {
+                        await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
+                        return;
+                    }
                 }
-            }
-            Interlocked.Increment(ref _isWorking);
+                Interlocked.Increment(ref _isWorking);
 
-            try
-            {
-                bool loop = true;
-
-                var processingTask = ProcessMessageAsync(baseMessage);
-
-                var task = processingTask.ContinueWith((t) => { loop = false; });
-
-                while (loop)
+                try
                 {
-                    var t = await Task.WhenAny(task, Task.Delay(30000));
-                    if (t != task)
-                        await _options.Provider.RenewLockAsync(message);
+                    bool loop = true;
+
+                    var processingTask = ProcessMessageAsync(baseMessage,resolver);
+
+                    var task = processingTask.ContinueWith((t) => { loop = false; });
+
+                    while (loop)
+                    {
+                        var t = await Task.WhenAny(task, Task.Delay(30000));
+                        if (t != task)
+                            await _options.Provider.RenewLockAsync(message);
+                    }
+
+                    await processingTask; // Make it throw exception
+
+                    Trace.WriteLine(string.Format("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
+                    //Everything ok, so take it off the queue
+                    await _options.Provider.CompleteMessageAsync(message);
+
+                    sw.Stop();
+                    if (_options.Notifications != null)
+                        await _options.Notifications.MessageCompletedAsync(new MessageCompletedNotification(resolver) { Message = baseMessage, Elapsed = sw.Elapsed });
+
                 }
-
-                await processingTask; // Make it throw exception
-
-                Trace.WriteLine(string.Format("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
-                //Everything ok, so take it off the queue
-                await _options.Provider.CompleteMessageAsync(message);
-
-                sw.Stop();
-                if (_options.Notifications != null)
-                    await _options.Notifications.MessageCompletedAsync(new MessageCompletedNotification { Message = baseMessage, Elapsed = sw.Elapsed });
-
-            }
-            finally
-            {
-                Interlocked.Decrement(ref _isWorking);
+                finally
+                {
+                    Interlocked.Decrement(ref _isWorking);
+                }
             }
         }
 
-        public async Task ProcessMessageAsync<T>(T message) where T : BaseMessage
+        public async Task ProcessMessageAsync<T>(T message, IMessageHandlerResolver resolver) where T : BaseMessage
         {
 
             //Voodoo to construct the right message handler type
@@ -292,12 +305,12 @@ namespace AzureWebrole.MessageProcessor.Core
             //Get an instance of the message handler type
 
            
-            using (var resolver = _options.ResolverProvider())
-            {
+           // using (var resolver = _options.ResolverProvider())
+           // {
                 var handler = resolver.GetHandler(constructed);
                 if (handler == null)
                 {
-                    var notification = new HandlerNotFoundNotification { Message = message, HandlerType = constructed };
+                    var notification = new HandlerNotFoundNotification(resolver) { Message = message, HandlerType = constructed };
                     await _options.Notifications.HandlerWasNotFoundAsync(notification);
                     if (notification.Handler != null)
                         handler = notification.Handler;
@@ -315,7 +328,7 @@ namespace AzureWebrole.MessageProcessor.Core
                 var task = methodInfo.Invoke(handler, new[] { message }) as Task;
                 if (task != null)
                     await task;
-            }
+           // }
         }
 
 
