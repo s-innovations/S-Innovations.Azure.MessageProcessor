@@ -149,7 +149,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         private QueueClient CreateQueueClient()
         {
-            Trace.WriteLine("Creating Queue Client");
+           
             var namespaceManager =
                NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
 
@@ -157,7 +157,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             {
                 namespaceManager.CreateQueue(this.options.QueueDescription);
             }
-
+            Trace.WriteLine(string.Format("Creating Queue Client for {0} at {1}", this.options.QueueDescription.Path,namespaceManager.Address));
             return QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.QueueDescription.Path);
         }
 
