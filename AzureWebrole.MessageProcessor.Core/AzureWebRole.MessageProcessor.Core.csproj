@@ -48,7 +48,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseMessage.cs" />
-    <Compile Include="MessageProcessorClient.cs" />
+    <Compile Include="IMessageHandlerResolver.cs" />
+    <Compile Include="IMessageHandler`1.cs" />
+    <Compile Include="IMessageProcessorClientProvider`1.cs" />
+    <Compile Include="IMessageProcessorClientProvider`2.cs" />
+    <Compile Include="IMessageProcessorProviderOptions`1.cs" />
+    <Compile Include="MessageProcessorClientOptions`1.cs" />
+    <Compile Include="MessageProcessorClient`1.cs" />
+    <Compile Include="Notifications\BaseNotificationMessage.cs" />
+    <Compile Include="Notifications\DefaultNotifications.cs" />
+    <Compile Include="Notifications\HandlerNotFoundNotification.cs" />
+    <Compile Include="Notifications\IdleRunningNotification.cs" />
+    <Compile Include="Notifications\IMessageProcessorNotifications.cs" />
+    <Compile Include="Notifications\MessageCompletedNotification.cs" />
+    <Compile Include="Notifications\MovingToDeadLetterNotification.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

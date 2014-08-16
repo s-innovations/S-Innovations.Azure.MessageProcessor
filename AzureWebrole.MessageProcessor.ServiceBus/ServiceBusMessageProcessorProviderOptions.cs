@@ -1,4 +1,4 @@
-﻿using AzureWebrole.MessageProcessor.Core;
+﻿using AzureWebRole.MessageProcessor.Core;
 using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;

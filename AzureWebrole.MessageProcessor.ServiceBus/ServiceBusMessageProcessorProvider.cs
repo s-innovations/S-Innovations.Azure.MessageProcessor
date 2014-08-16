@@ -1,5 +1,4 @@
-﻿using AzureWebrole.MessageProcessor.Core;
-using Microsoft.ServiceBus;
+﻿using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;
@@ -10,6 +9,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
+using AzureWebRole.MessageProcessor.Core;
 
 
 namespace AzureWebRole.MessageProcessor.ServiceBus
@@ -158,7 +158,9 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 namespaceManager.CreateQueue(this.options.QueueDescription);
             }
             Trace.WriteLine(string.Format("Creating Queue Client for {0} at {1}", this.options.QueueDescription.Path,namespaceManager.Address));
-            return QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.QueueDescription.Path);
+            var client = QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.QueueDescription.Path);
+           
+            return client;
         }
 
         private TopicClient CreateTopicClient()
@@ -391,7 +393,10 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                 throw;
             }
 
-
+            if(Client != null)
+            {
+                Client.RetryPolicy = RetryExponential.Default;
+            }
 
         }
 
@@ -423,16 +428,16 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
             return brokeredMessage;
         }
-        private string makeGuidFromString(string input)
-        {
-            var provider = new MD5CryptoServiceProvider();
-            var inputBytes = Encoding.UTF8.GetBytes(input);
+        //private string makeGuidFromString(string input)
+        //{
+        //    var provider = new MD5CryptoServiceProvider();
+        //    var inputBytes = Encoding.UTF8.GetBytes(input);
 
-            var hashBytes = provider.ComputeHash(inputBytes);
-            var hashGuid = new Guid(hashBytes);
+        //    var hashBytes = provider.ComputeHash(inputBytes);
+        //    var hashGuid = new Guid(hashBytes);
 
-            return hashGuid.ToString();
-        }
+        //    return hashGuid.ToString();
+        //}
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
             if (e.Exception != null)
@@ -508,6 +513,18 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         public Task<string> GetMessageIdForMessageAsync(BrokeredMessage message)
         {
             return Task.FromResult(message.MessageId);
+        }
+
+
+        public async Task StopListening()
+        {
+            if (Client != null)
+            {
+                await Client.CloseAsync();
+                Client = null;
+            }
+
+
         }
     }
 }

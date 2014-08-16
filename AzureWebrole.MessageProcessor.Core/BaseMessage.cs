@@ -6,7 +6,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebrole.MessageProcessor.Core
+namespace AzureWebRole.MessageProcessor.Core
 {
     [Serializable]
     public abstract class BaseMessage

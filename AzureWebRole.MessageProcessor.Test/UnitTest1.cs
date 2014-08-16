@@ -4,14 +4,33 @@ using System.IO;
 using AzureWebRole.MessageProcessor.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 using System.Collections.Generic;
-using AzureWebrole.MessageProcessor.Core;
+using System.Runtime.Serialization;
+using AzureWebRole.MessageProcessor.Core;
 
 namespace AzureWebRole.MessageProcessor.Test
 {
 
+    [Serializable]
     public class TestMessage : BaseMessage
     {
         public string Id {get;set;}
+
+
+        public AnotherMeessage PostMessage { get; set; }
+    }
+    
+    [Serializable]
+    [KnownType(typeof(Test2Message))]
+    public class AnotherMeessage : TestMessage
+    {
+        public string Test { get; set; }
+    }
+
+    [Serializable]
+    
+    public class Test2Message : AnotherMeessage
+    {
+        public string Test2 { get; set; }
     }
     [TestClass]
     public class UnitTest1
@@ -23,8 +42,7 @@ namespace AzureWebRole.MessageProcessor.Test
 #if DEBUG
 
 
-            var connectionString = "Endpoint=sb://scaletest3.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=oVC0tZZ4pULz7r9Cq5/WpMqqcNUj/v6x8zOTshGCyT0=";
-            int scalecount = 10;
+            var connectionString = ""; int scalecount = 10;
             //Setting up everything (run Once)
             var options = new ServiceBusMessageProcessorProviderOptions()
             {
@@ -40,15 +58,15 @@ namespace AzureWebRole.MessageProcessor.Test
                 TopicDescription = new TopicDescription("ourTopics"),
                 ConnectionStringProvider = new Dictionary<string, string>
                 {
-                    {"test","Endpoint=sb://scaletest1.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=WA3Q4aORYuDtEywWHIPY6I2lhZ/5zCgZy+DhdyPQEaQ="},
-                    {"anothertest","Endpoint=sb://scaletest2.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=bL8Jt58rlNUO1z9Lw3fT04tC+YiuSo8jFMPavNrI4EY="}
+                    {"test",connectionString},
+                    {"anothertest",connectionString}
                 }
             };
-
+            
             
             var provider = new ServiceBusMessageProcessorProvider(options);
             provider.EnsureTopicsAndQueuesCreatedAsync().Wait();
-
+            
             //This is what is needed to post messages to the system.
 
             var anotherProvider = new ServiceBusMessageProcessorProvider(
@@ -62,14 +80,14 @@ namespace AzureWebRole.MessageProcessor.Test
                     },
                     ConnectionStringProvider = new Dictionary<string, string>
                     {
-                        {"test","Endpoint=sb://scaletest1.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=WA3Q4aORYuDtEywWHIPY6I2lhZ/5zCgZy+DhdyPQEaQ="},
-                        {"anothertest","Endpoint=sb://scaletest2.servicebus.windows.net/;SharedSecretIssuer=owner;SharedSecretValue=bL8Jt58rlNUO1z9Lw3fT04tC+YiuSo8jFMPavNrI4EY="}
+                        {"test",connectionString},
+                        {"anothertest",connectionString}
                     },
                     TopicDescription = new TopicDescription("ourTopics"),
                 });
             for (var i = 0; i < 10; i++)
             {
-                anotherProvider.SendMessageAsync(new TestMessage { Id = "test" }).Wait();
+                anotherProvider.SendMessageAsync(new TestMessage { Id = "test", PostMessage = new Test2Message() { Test = "asd", Test2="adsa" } }).Wait();
                 anotherProvider.SendMessageAsync(new TestMessage { Id = "anothertest" }).Wait();
                 anotherProvider.SendMessageAsync(new TestMessage { Id = "test" }).Wait();
             }
