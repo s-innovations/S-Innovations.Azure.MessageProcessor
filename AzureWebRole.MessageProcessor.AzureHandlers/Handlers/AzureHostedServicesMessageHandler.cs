@@ -63,19 +63,21 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
 
                 await HandleServiceCertificates(message, management, document);
 
-
-                var result = await management.Deployments.CreateAsync(message.HostedServiceName,
-                       DeploymentSlot.Production,
-                       new DeploymentCreateParameters
+                var deployParameter = new DeploymentCreateParameters
                        {
                            StartDeployment = true,
                            PackageUri = new Uri(message.HostedServicePackageSasUri),
                            Name = message.DeploymentName,
                            Label = message.DeploymentLabel ?? message.DeploymentName,
                            Configuration = document.ToString(),
-                           ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.DeploymentJsonExtendedProperties)
+                         
+                       };
+                if (!string.IsNullOrWhiteSpace(message.DeploymentJsonExtendedProperties))
+                    deployParameter.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.DeploymentJsonExtendedProperties);
                         
-                       });
+                var result = await management.Deployments.CreateAsync(message.HostedServiceName,
+                       DeploymentSlot.Production,
+                       deployParameter);
 
                 bool running = false;
                 var starttime = DateTime.UtcNow;
@@ -141,15 +143,19 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 throw new Exception(exceptionMessage);
             }
 
-
-            var operation = await management.HostedServices.CreateAsync(new HostedServiceCreateParameters
+           var parameters =new HostedServiceCreateParameters
             {
                 AffinityGroup = message.AffinityGroup,
                 Description = "Automatic Created Cloud Service",
                 Label = message.HostedServiceName,
                 ServiceName = message.HostedServiceName,
                 ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.ServiceJsonExtendedProperties)
-            });
+            };
+           if (!string.IsNullOrWhiteSpace(message.ServiceJsonExtendedProperties))
+               parameters.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.ServiceJsonExtendedProperties);
+             
+            var operation = await management.HostedServices.CreateAsync(parameters);
+
         }
     }
 }
