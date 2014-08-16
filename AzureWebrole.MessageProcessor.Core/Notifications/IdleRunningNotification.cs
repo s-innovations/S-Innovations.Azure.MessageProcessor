@@ -10,16 +10,24 @@ namespace AzureWebRole.MessageProcessor.Core.Notifications
     {
         public TimeSpan IdleTime { get; set; }
 
-      
-        internal TaskCompletionSource<int> RestartTask;
+
+
+        private IMessageProcessorClient messageProcessorClient;
+
+        public IdleRunningNotification(IMessageProcessorClient messageProcessorClient)
+        {
+            // TODO: Complete member initialization
+            this.messageProcessorClient = messageProcessorClient;
+        }
 
         /// <summary>
         /// Bring the client to stop when done, waiting until next message completes if any.
         /// </summary>
         public Task RestartClientAsync()
         {
-            RestartTask = new TaskCompletionSource<int>();
-            return RestartTask.Task;
+           
+            return this.messageProcessorClient.RestartProcessorAsync();
+            
         }
     }
 }

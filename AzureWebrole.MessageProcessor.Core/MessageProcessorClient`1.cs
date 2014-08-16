@@ -9,7 +9,11 @@ using System.Threading.Tasks;
 
 namespace AzureWebRole.MessageProcessor.Core
 {
-    public class MessageProcessorClient<MessageType> : IDisposable
+    public interface IMessageProcessorClient : IDisposable
+    {
+        Task RestartProcessorAsync();
+    }
+    public class MessageProcessorClient<MessageType> : IMessageProcessorClient
     {
 
         private readonly MessageProcessorClientOptions<MessageType> _options;
@@ -54,7 +58,7 @@ namespace AzureWebRole.MessageProcessor.Core
             {
 
                 _options.Provider.StartListening(OnMessageAsync);
-
+                _lastMessageRecieved = DateTimeOffset.UtcNow;
                 SetIdleCheckTimer();
 
                 if (source != null)
@@ -87,20 +91,9 @@ namespace AzureWebRole.MessageProcessor.Core
                     DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved).Minutes, _isWorking));
                 if (_isWorking == 0)
                 {
-                    var notice = new IdleRunningNotification { IdleTime = DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved) };
-                    _options.Notifications.RunningIdleAsync(notice);
-                    restart = notice.RestartTask != null;
-
-                    if(restart)
-                    {
-                        RestartProcessorAsync().ContinueWith((task) => {
-                            if (task.IsFaulted)
-                                notice.RestartTask.SetException(task.Exception);
-                            if (task.IsCanceled)
-                                notice.RestartTask.SetCanceled();
-                            notice.RestartTask.SetResult(0);
-                        });
-                    }
+                    var notice = new IdleRunningNotification(this) { IdleTime = DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved) };
+                    _options.Notifications.RunningIdleAsync(notice).Wait();
+                                  
                 }
             }
             finally
