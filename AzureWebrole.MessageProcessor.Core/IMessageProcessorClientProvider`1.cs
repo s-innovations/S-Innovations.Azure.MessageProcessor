@@ -25,6 +25,6 @@ namespace AzureWebRole.MessageProcessor.Core
         Task<string> GetMessageIdForMessageAsync(MessageType message);
 
 
-        Task StopListening();
+        Task StopListeningAsync();
     }
 }

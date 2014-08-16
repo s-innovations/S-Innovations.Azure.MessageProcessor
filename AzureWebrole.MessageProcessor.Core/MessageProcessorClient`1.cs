@@ -34,6 +34,8 @@ namespace AzureWebRole.MessageProcessor.Core
         {
             Trace.WriteLine("Starting MessageProcessorClient");
             source = new TaskCompletionSource<int>();
+
+           
             Runner = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
             return source.Task;
 
@@ -42,7 +44,13 @@ namespace AzureWebRole.MessageProcessor.Core
         {
             CompletedEvent.Set();
             CompletedEvent.Reset();
+            
             return StartProcessorAsync();
+        }
+        private bool resetOnNextIdle = false;
+        public void SignalRestartOnNextAllCompletedMessage()
+        {
+            resetOnNextIdle = true;
         }
         public void AddMessage<T>(T Message) where T : BaseMessage
         {
@@ -68,7 +76,8 @@ namespace AzureWebRole.MessageProcessor.Core
                 }
                 CompletedEvent.WaitOne();
 
-                _options.Provider.StopListening();
+                _options.Provider.StopListeningAsync().Wait();
+     
             }
             catch (Exception ex)
             {
@@ -175,6 +184,11 @@ namespace AzureWebRole.MessageProcessor.Core
                 {
                     Interlocked.Decrement(ref _isWorking);
                 }
+                if(_isWorking == 0 && resetOnNextIdle)
+                {
+                    CompletedEvent.Set();
+                }
+                
             }
         }
 

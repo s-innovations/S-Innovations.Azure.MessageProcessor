@@ -516,12 +516,14 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
         }
 
 
-        public async Task StopListening()
+        public async Task StopListeningAsync()
         {
-            if (Client != null)
+            var client = Client;
+            Client = null;
+
+            if (client != null)
             {
-                await Client.CloseAsync();
-                Client = null;
+                await client.CloseAsync();               
             }
 
 
