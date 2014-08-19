@@ -125,7 +125,7 @@ namespace AzureWebRole.MessageProcessor.Core
         }
 
 
-
+        public static TimeSpan DefaultLockRenewTimer = TimeSpan.FromSeconds(30);
         public async Task OnMessageAsync(MessageType message)
         {
             BaseMessage baseMessage = _options.Provider.FromMessage<BaseMessage>(message);
@@ -164,7 +164,7 @@ namespace AzureWebRole.MessageProcessor.Core
 
                     while (loop)
                     {
-                        var t = await Task.WhenAny(task, Task.Delay(30000));
+                        var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer));
                         if (t != task)
                             await _options.Provider.RenewLockAsync(message);
                     }

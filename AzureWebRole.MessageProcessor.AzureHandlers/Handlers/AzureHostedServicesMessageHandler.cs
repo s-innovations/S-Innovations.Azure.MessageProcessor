@@ -52,6 +52,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 }
 
                 
+                
                 XDocument document = null;
                 if (!string.IsNullOrWhiteSpace(message.PackageConfigurationUri))
                     document = XDocument.Load(message.PackageConfigurationUri);
@@ -62,22 +63,16 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                     throw new Exception("The message did not have a valid PackageConfiguration Setting, specify either uri or xml");
 
                 await HandleServiceCertificates(message, management, document);
+                OperationStatusResponse response = null;
+                if (service.Deployments.Any())
+                {
+                    response = await HandleUpgradeAsync(message, management, document, response);
+                }
+                else
+                {
 
-                var deployParameter = new DeploymentCreateParameters
-                       {
-                           StartDeployment = true,
-                           PackageUri = new Uri(message.HostedServicePackageSasUri),
-                           Name = message.DeploymentName,
-                           Label = message.DeploymentLabel ?? message.DeploymentName,
-                           Configuration = document.ToString(),
-                         
-                       };
-                if (!string.IsNullOrWhiteSpace(message.DeploymentJsonExtendedProperties))
-                    deployParameter.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.DeploymentJsonExtendedProperties);
-                        
-                var result = await management.Deployments.CreateAsync(message.HostedServiceName,
-                       DeploymentSlot.Production,
-                       deployParameter);
+                    response = await HandleDeployAsync(message, management, document, response);
+                }
 
                 bool running = false;
                 var starttime = DateTime.UtcNow;
@@ -99,6 +94,42 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 }
 
             }
+        }
+
+        private static async Task<OperationStatusResponse> HandleDeployAsync(DeployAzureHostedServiceMessage message, Microsoft.WindowsAzure.Management.Compute.ComputeManagementClient management, XDocument document, OperationStatusResponse response)
+        {
+            var deployParameter = new DeploymentCreateParameters
+            {
+                StartDeployment = true,
+                PackageUri = new Uri(message.HostedServicePackageSasUri),
+                Name = message.DeploymentName,
+                Label = message.DeploymentLabel ?? message.DeploymentName,
+                Configuration = document.ToString(),
+
+            };
+            if (!string.IsNullOrWhiteSpace(message.DeploymentJsonExtendedProperties))
+                deployParameter.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.DeploymentJsonExtendedProperties);
+
+
+            response = await management.Deployments.CreateAsync(message.HostedServiceName,
+                   DeploymentSlot.Production,
+                   deployParameter);
+            return response;
+        }
+
+        private static async Task<OperationStatusResponse> HandleUpgradeAsync(DeployAzureHostedServiceMessage message, Microsoft.WindowsAzure.Management.Compute.ComputeManagementClient management, XDocument document, OperationStatusResponse response)
+        {
+            var upgradeParameters = new DeploymentUpgradeParameters
+            {
+                Configuration = document.ToString(),
+                PackageUri = new Uri(message.HostedServicePackageSasUri),
+                Label = message.DeploymentLabel ?? message.DeploymentName,
+                Force = true,
+                Mode = DeploymentUpgradeMode.Auto
+            };
+
+            response = await management.Deployments.UpgradeBySlotAsync(message.HostedServiceName, DeploymentSlot.Production, upgradeParameters);
+            return response;
         }
 
         private async Task HandleServiceCertificates(DeployAzureHostedServiceMessage message, Microsoft.WindowsAzure.Management.Compute.ComputeManagementClient management, XDocument document)
@@ -149,7 +180,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 Description = "Automatic Created Cloud Service",
                 Label = message.HostedServiceName,
                 ServiceName = message.HostedServiceName,
-                ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.ServiceJsonExtendedProperties)
+              
             };
            if (!string.IsNullOrWhiteSpace(message.ServiceJsonExtendedProperties))
                parameters.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.ServiceJsonExtendedProperties);

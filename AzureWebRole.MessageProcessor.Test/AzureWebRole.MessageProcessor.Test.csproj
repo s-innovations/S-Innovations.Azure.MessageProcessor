@@ -64,8 +64,13 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnitTest1.cs" />
+    <Compile Include="UnitTest2.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AzureWebRole.MessageProcessor.AzureHandlers\AzureWebRole.MessageProcessor.AzureHandlers.csproj">
+      <Project>{50f3e086-dcaf-4b96-a85c-334239b9cefa}</Project>
+      <Name>AzureWebRole.MessageProcessor.AzureHandlers</Name>
+    </ProjectReference>
     <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\AzureWebRole.MessageProcessor.Core.csproj">
       <Project>{5f5caeba-6724-4a10-a38a-80b0489e579c}</Project>
       <Name>AzureWebRole.MessageProcessor.Core</Name>

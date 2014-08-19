@@ -19,5 +19,7 @@ namespace AzureWebRole.MessageProcessor.Core
         public Func<IMessageHandlerResolver> ResolverProvider { get; set; }
 
         public TimeSpan? IdleTimeCheckInterval { get; set; }
+
+        public TimeSpan? AutoRenewLockTimerDuration { get; set; }
     }
 }
