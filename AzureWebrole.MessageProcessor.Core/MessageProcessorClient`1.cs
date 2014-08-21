@@ -162,11 +162,20 @@ namespace AzureWebRole.MessageProcessor.Core
 
                     var task = processingTask.ContinueWith((t) => { loop = false; });
 
+                    var timeout = _options.HandlerTimeOut ?? DefaultTimeOut;
+                    if (_options.MessageBasedTimeOutProvider != null)
+                        timeout = _options.MessageBasedTimeOutProvider(baseMessage) ?? timeout;
+
+
+                    var MaximumTimeTask = Task.Delay(timeout);
                     while (loop)
                     {
-                        var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer));
-                        if (t != task)
-                            await _options.Provider.RenewLockAsync(message);
+                        var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer), MaximumTimeTask);
+                        if (t == MaximumTimeTask)
+                            throw new TimeoutException(string.Format("The handler could not finish in given time :{0}", timeout));
+                        
+
+                        await _options.Provider.RenewLockAsync(message);
                     }
 
                     await processingTask; // Make it throw exception
@@ -238,5 +247,7 @@ namespace AzureWebRole.MessageProcessor.Core
             _options.Provider.Dispose();
 
         }
+
+        public static TimeSpan DefaultTimeOut = TimeSpan.FromMinutes(10);
     }
 }

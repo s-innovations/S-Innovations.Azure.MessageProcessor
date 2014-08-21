@@ -21,5 +21,9 @@ namespace AzureWebRole.MessageProcessor.Core
         public TimeSpan? IdleTimeCheckInterval { get; set; }
 
         public TimeSpan? AutoRenewLockTimerDuration { get; set; }
+
+        public TimeSpan? HandlerTimeOut { get; set; }
+
+        public Func<BaseMessage, TimeSpan?> MessageBasedTimeOutProvider { get; set; }
     }
 }
