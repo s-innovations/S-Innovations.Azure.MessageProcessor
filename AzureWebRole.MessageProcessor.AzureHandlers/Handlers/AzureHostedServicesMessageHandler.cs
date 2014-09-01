@@ -148,6 +148,13 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 Force = true,
                 Mode = DeploymentUpgradeMode.Auto
             };
+            if (upgradeParameters.ExtendedProperties == null)
+                upgradeParameters.ExtendedProperties = new Dictionary<string, string>();
+
+            if (!string.IsNullOrWhiteSpace(message.Key))
+            {
+                upgradeParameters.ExtendedProperties.Add(KEY_PROPERTY, message.Key);
+            }
 
             response = await management.Deployments.UpgradeBySlotAsync(message.HostedServiceName, DeploymentSlot.Production, upgradeParameters);
             return response;
