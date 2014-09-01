@@ -37,5 +37,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
         public string DeploymentLabel { get; set; }
 
         public int DeploymentTimeoutInMinutes { get; set; }
+
+        public string Key { get; set; }
     }
 }

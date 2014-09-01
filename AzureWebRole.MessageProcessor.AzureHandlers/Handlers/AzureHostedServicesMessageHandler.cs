@@ -73,11 +73,10 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
 
 
                     var deployment = service.Deployments.FirstOrDefault();
-                    var currentConfig = XDocument.Parse(deployment.Configuration);
-                    if (deployment.RoleInstances.All(instance => message.HostedServicePackageSasUri.ToLower().Contains(instance.InstanceSize.ToLower())) && 
-                        currentConfig.ToString().Equals(document.ToString(),StringComparison.OrdinalIgnoreCase))
+
+                    if(deployment.ExtendedProperties.ContainsKey(KEY_PROPERTY) && deployment.ExtendedProperties[KEY_PROPERTY] == message.Key )
                     {
-                        Trace.TraceInformation("The service '{0}' already had a deployment with same config and all instances of same size. Skipped deployment.", message.HostedServiceName);
+                        Trace.TraceInformation("The service '{0}' already had a deployment with same key. Skipped deployment.", message.HostedServiceName);
                         return;
                     }
 
@@ -110,7 +109,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
 
             }
         }
-
+        private const string KEY_PROPERTY = "DeploymentKey";
         private static async Task<OperationStatusResponse> HandleDeployAsync(DeployAzureHostedServiceMessage message, Microsoft.WindowsAzure.Management.Compute.ComputeManagementClient management, XDocument document, OperationStatusResponse response)
         {
             var deployParameter = new DeploymentCreateParameters
@@ -124,6 +123,13 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
             };
             if (!string.IsNullOrWhiteSpace(message.DeploymentJsonExtendedProperties))
                 deployParameter.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.DeploymentJsonExtendedProperties);
+            if (deployParameter.ExtendedProperties == null)
+                deployParameter.ExtendedProperties = new Dictionary<string, string>();
+
+            if(!string.IsNullOrWhiteSpace(message.Key))
+            {
+                deployParameter.ExtendedProperties.Add(KEY_PROPERTY, message.Key);
+            }
 
 
             response = await management.Deployments.CreateAsync(message.HostedServiceName,
