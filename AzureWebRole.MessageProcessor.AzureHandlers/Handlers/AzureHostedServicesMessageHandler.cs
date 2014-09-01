@@ -62,10 +62,25 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 if (document == null)
                     throw new Exception("The message did not have a valid PackageConfiguration Setting, specify either uri or xml");
 
+           
+
+
+
                 await HandleServiceCertificates(message, management, document);
                 OperationStatusResponse response = null;
                 if (service.Deployments.Any())
                 {
+
+
+                    var deployment = service.Deployments.FirstOrDefault();
+                    var currentConfig = XDocument.Parse(deployment.Configuration);
+                    if (deployment.RoleInstances.All(instance => message.HostedServicePackageSasUri.ToLower().Contains(instance.InstanceSize.ToLower())) && 
+                        currentConfig.ToString().Equals(document.ToString(),StringComparison.OrdinalIgnoreCase))
+                    {
+                        Trace.TraceInformation("The service '{0}' already had a deployment with same config and all instances of same size. Skipped deployment.", message.HostedServiceName);
+                        return;
+                    }
+
                     response = await HandleUpgradeAsync(message, management, document, response);
                 }
                 else
