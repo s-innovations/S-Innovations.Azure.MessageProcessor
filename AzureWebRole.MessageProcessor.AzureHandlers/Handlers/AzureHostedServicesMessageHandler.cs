@@ -1,4 +1,5 @@
-﻿using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
+﻿using AzureWebRole.MessageProcessor.AzureHandlers.Helpers;
+using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
 using AzureWebRole.MessageProcessor.Core;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Management.Compute.Models;
@@ -22,16 +23,8 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
         }
         public async Task HandleAsync(DeployAzureHostedServiceMessage message)
         {
-          
-            SubscriptionCloudCredentials cred = 
-                !string.IsNullOrWhiteSpace(message.AzureSubscriptionCertificateThumbprint) ? 
-                  new CertificateCloudCredentials(message.AzureSubscriptionId,
-                    await certificates.GetCertificateAsync(message.AzureSubscriptionCertificateThumbprint)) as SubscriptionCloudCredentials :
-                (!string.IsNullOrWhiteSpace(message.AzureSubscriptionToken) ? 
-                    new TokenCloudCredentials(message.AzureSubscriptionId) : null);
 
-            if (cred == null)
-                throw new Exception("No Credentials Given");
+            var cred = await CredentialsHelper.GetCredentials(message,certificates);
 
             using (var management = CloudContext.Clients.CreateComputeManagementClient(cred))
             {

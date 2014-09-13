@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
+{
+    public class DeleteAzureHostedServiceMessage : AzureSubscriptionBaseMessage
+    {
+        public string DeploymentName { get; set; }
+
+        public string DeploymentId { get; set; }
+
+        public IEnumerable<string> RoleInstanceId { get; set; }
+    }
+}

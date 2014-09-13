@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
 {
-    public class DeployAzureHostedServiceMessage : BaseMessage
+    public class DeployAzureHostedServiceMessage : AzureSubscriptionBaseMessage
     {
         public DeployAzureHostedServiceMessage()
         {
@@ -15,10 +15,6 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
             CanUpgrade = false;
             DeploymentTimeoutInMinutes = 30;
         }
-
-        public string AzureSubscriptionId { get; set; }
-        public string AzureSubscriptionCertificateThumbprint { get; set; }
-        public string AzureSubscriptionToken { get; set; }
 
         public string HostedServicePackageSasUri{ get; set; }
         public string PackageConfigurationUri { get; set; }
