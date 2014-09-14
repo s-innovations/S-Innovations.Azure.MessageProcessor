@@ -36,13 +36,26 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                     Trace.TraceInformation("{0} {1}", JsonConvert.SerializeObject(details.Deployments), JsonConvert.SerializeObject(details.DeploymentsValue));
                     if(details.Deployments.Any(d=>d.PrivateId == message.DeploymentId))
                     {
-                        await management.Deployments.DeleteRoleInstanceByDeploymentNameAsync(
-                            service.ServiceName, 
-                            message.DeploymentId,
+                        var deployment = details.Deployments.First(d => d.PrivateId == message.DeploymentId);
+                        if (deployment.RoleInstances.Count == 1 && 
+                            deployment.RoleInstances.First().InstanceName == message.RoleInstanceId.First())
+                        {
+                            Trace.TraceInformation("Killing last instance: {0} ", service.ServiceName);
+                            return;
+                            await management.Deployments.DeleteBySlotAsync(service.ServiceName, deployment.DeploymentSlot);
+
+                        }else{
+
+                            Trace.TraceInformation("Killing instance:{0}", service.ServiceName);
+                            return;
+                            await management.Deployments.DeleteRoleInstanceByDeploymentNameAsync(
+                            service.ServiceName,
+                            deployment.Name,
                             new DeploymentDeleteRoleInstanceParameters 
                             {
                                 Name = new List<string>(message.RoleInstanceId)
                             });
+                        }
                     }
                 }
             }
