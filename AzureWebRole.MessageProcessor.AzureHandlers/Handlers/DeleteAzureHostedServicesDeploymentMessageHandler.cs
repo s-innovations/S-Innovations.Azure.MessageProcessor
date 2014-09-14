@@ -3,8 +3,10 @@ using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
 using AzureWebRole.MessageProcessor.Core;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Management.Compute.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,9 +27,13 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
             using (var management = CloudContext.Clients.CreateComputeManagementClient(cred))
             {
                 var services = await management.HostedServices.ListAsync();
+                Trace.TraceInformation("{0} Hosted Services Found. Looking for {1} in {2}"
+                ,services.Count(), JsonConvert.SerializeObject(message), JsonConvert.SerializeObject(services.Select(s=>new {s.ServiceName}).ToArray()));
+                
                 foreach(var service in services)
                 {
                     var details = await management.HostedServices.GetDetailedAsync(service.ServiceName);
+                    Trace.TraceInformation("{0} {1}", JsonConvert.SerializeObject(details.Deployments), JsonConvert.SerializeObject(details.DeploymentsValue));
                     if(details.Deployments.Any(d=>d.PrivateId == message.DeploymentId))
                     {
                         await management.Deployments.DeleteRoleInstanceByDeploymentNameAsync(
