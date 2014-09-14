@@ -11,6 +11,6 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
       
         public string DeploymentId { get; set; }
 
-        public IEnumerable<string> RoleInstanceId { get; set; }
+        public string[] RoleInstanceId { get; set; }
     }
 }
