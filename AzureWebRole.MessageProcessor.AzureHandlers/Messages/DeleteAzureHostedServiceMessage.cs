@@ -8,8 +8,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
 {
     public class DeleteAzureHostedServiceMessage : AzureSubscriptionBaseMessage
     {
-        public string DeploymentName { get; set; }
-
+      
         public string DeploymentId { get; set; }
 
         public IEnumerable<string> RoleInstanceId { get; set; }
