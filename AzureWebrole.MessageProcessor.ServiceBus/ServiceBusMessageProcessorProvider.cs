@@ -408,9 +408,9 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             {
                 //Should never get here as a messagebodytype should
                 //always be set BEFORE putting the message on the queue
-                Trace.TraceError("Message does not have a messagebodytype" +
-                  " specified, message {0}", m.MessageId);
-                m.DeadLetter();
+                Trace.TraceError("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString());
+               // m.DeadLetter();
+                throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString()));
             }
             MethodInfo method = typeof(BrokeredMessage).GetMethod("GetBody", new Type[] { });
             MethodInfo generic = method.MakeGenericMethod(messageBodyType);
