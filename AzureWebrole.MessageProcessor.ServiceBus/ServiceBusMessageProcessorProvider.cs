@@ -402,6 +402,7 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
         public T FromMessage<T>(BrokeredMessage m) where T : BaseMessage
         {
+
             var messageBodyType =
                       Type.GetType(m.Properties["messageType"].ToString());
             if (messageBodyType == null)
