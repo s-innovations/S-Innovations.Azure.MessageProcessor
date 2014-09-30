@@ -33,7 +33,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                 foreach(var service in services)
                 {
                     var details = await management.HostedServices.GetDetailedAsync(service.ServiceName);
-                    Trace.TraceInformation("{0} {1}", JsonConvert.SerializeObject(details.Deployments), JsonConvert.SerializeObject(details.DeploymentsValue));
+                    
                     if(details.Deployments.Any(d=>d.PrivateId == message.DeploymentId))
                     {
                         var deployment = details.Deployments.First(d => d.PrivateId == message.DeploymentId);
