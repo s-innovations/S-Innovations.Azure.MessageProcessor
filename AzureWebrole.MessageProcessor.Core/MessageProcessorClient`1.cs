@@ -90,14 +90,14 @@ namespace AzureWebRole.MessageProcessor.Core
         private DateTimeOffset _lastMessageRecieved = DateTimeOffset.UtcNow;
         private int _isWorking = 0;
         private System.Timers.Timer _idleCheckTimer;
-
+        private Lazy<int> _currentProcessId = new Lazy<int>(() => Process.GetCurrentProcess().Id);
         private void OnIdleCheckTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
             bool restart = false;
             try
             {
-                Trace.WriteLine(string.Format("Been running ilde for {0} minutes. Is Working: {1}",
-                    DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved).Minutes, _isWorking));
+                Trace.WriteLine(string.Format("Process {2}: Been running ilde for {0} minutes. Is Working: {1}",
+                    DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved).Minutes, _isWorking, _currentProcessId.Value));
                 if (_isWorking == 0)
                 {
                     var notice = new IdleRunningNotification(this) { IdleTime = DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved) };
