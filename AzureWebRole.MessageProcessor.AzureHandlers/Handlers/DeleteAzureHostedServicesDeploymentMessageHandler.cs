@@ -41,13 +41,12 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
                             deployment.RoleInstances.First().InstanceName == message.RoleInstanceId.First())
                         {
                             Trace.TraceInformation("Killing last instance: {0} ", service.ServiceName);
-                            return;
+                          
                             await management.Deployments.DeleteBySlotAsync(service.ServiceName, deployment.DeploymentSlot);
 
                         }else{
 
                             Trace.TraceInformation("Killing instance:{0}", service.ServiceName);
-                            return;
                             await management.Deployments.DeleteRoleInstanceByDeploymentNameAsync(
                             service.ServiceName,
                             deployment.Name,
