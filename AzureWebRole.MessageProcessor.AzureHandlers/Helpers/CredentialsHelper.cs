@@ -1,4 +1,5 @@
 ﻿using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
+using Microsoft.Azure;
 using Microsoft.WindowsAzure;
 using System;
 using System.Collections.Generic;

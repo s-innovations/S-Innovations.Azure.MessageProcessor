@@ -2,6 +2,7 @@
 using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
 using AzureWebRole.MessageProcessor.Core;
 using Microsoft.WindowsAzure;
+using Microsoft.WindowsAzure.Management.Compute;
 using Microsoft.WindowsAzure.Management.Compute.Models;
 using Newtonsoft.Json;
 using System;
@@ -24,7 +25,7 @@ namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
         {
             var cred = await CredentialsHelper.GetCredentials(message,certificates);
 
-            using (var management = CloudContext.Clients.CreateComputeManagementClient(cred))
+            using (var management = new ComputeManagementClient(cred))
             {
                 var services = await management.HostedServices.ListAsync();
                 Trace.TraceInformation("{0} Hosted Services Found. Looking for {1} in {2}"
