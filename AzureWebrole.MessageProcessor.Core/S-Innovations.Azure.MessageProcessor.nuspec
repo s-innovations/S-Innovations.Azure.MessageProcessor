@@ -10,8 +10,7 @@
     <projectUrl>https://github.com/s093294/AzureWebroleMessageProcessor</projectUrl>   
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Initial Release</releaseNotes>
-    <copyright>Copyright 2014</copyright>
-    <tags>Azure Queue Processing</tags>
+    <copyright>Copyright 2015</copyright>
+    <tags>Azure Queue S-Innovations</tags>
   </metadata>
 </package>
