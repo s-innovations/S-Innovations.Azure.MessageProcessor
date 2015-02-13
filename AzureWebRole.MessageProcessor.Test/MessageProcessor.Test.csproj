@@ -6,8 +6,8 @@
     <ProjectGuid>{3B1FE177-4D29-491D-805D-9971E79A3BFD}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AzureWebRole.MessageProcessor.Test</RootNamespace>
-    <AssemblyName>AzureWebRole.MessageProcessor.Test</AssemblyName>
+    <RootNamespace>SInnovations.Azure.MessageProcessor.Test</RootNamespace>
+    <AssemblyName>SInnovations.Azure.MessageProcessor.Test</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -39,7 +39,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.ServiceBus, Version=2.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\WindowsAzure.ServiceBus.2.6.0\lib\net40-full\Microsoft.ServiceBus.dll</HintPath>
+      <HintPath>..\packages\WindowsAzure.ServiceBus.2.6.1\lib\net40-full\Microsoft.ServiceBus.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.WindowsAzure.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.WindowsAzure.ConfigurationManager.2.0.3\lib\net40\Microsoft.WindowsAzure.Configuration.dll</HintPath>
@@ -67,25 +67,25 @@
     <Compile Include="UnitTest2.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AzureWebRole.MessageProcessor.AzureHandlers\AzureWebRole.MessageProcessor.AzureHandlers.csproj">
+    <ProjectReference Include="..\AzureWebRole.MessageProcessor.AzureHandlers\MessageProcessor.AzureHandlers.csproj">
       <Project>{50f3e086-dcaf-4b96-a85c-334239b9cefa}</Project>
-      <Name>AzureWebRole.MessageProcessor.AzureHandlers</Name>
+      <Name>MessageProcessor.AzureHandlers</Name>
     </ProjectReference>
-    <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\AzureWebRole.MessageProcessor.Core.csproj">
+    <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj">
       <Project>{5f5caeba-6724-4a10-a38a-80b0489e579c}</Project>
-      <Name>AzureWebRole.MessageProcessor.Core</Name>
+      <Name>MessageProcessor.Core</Name>
     </ProjectReference>
-    <ProjectReference Include="..\AzureWebRole.MessageProcessor.Ninject\AzureWebRole.MessageProcessor.Ninject.csproj">
+    <ProjectReference Include="..\AzureWebRole.MessageProcessor.Ninject\MessageProcessor.Ninject.csproj">
       <Project>{6e872116-72f1-4389-a3a0-43537bc4f376}</Project>
-      <Name>AzureWebRole.MessageProcessor.Ninject</Name>
+      <Name>MessageProcessor.Ninject</Name>
     </ProjectReference>
-    <ProjectReference Include="..\AzureWebrole.MessageProcessor.ServiceBus\AzureWebRole.MessageProcessor.ServiceBus.csproj">
+    <ProjectReference Include="..\AzureWebrole.MessageProcessor.ServiceBus\MessageProcessor.ServiceBus.csproj">
       <Project>{751072ee-964f-4a83-8b93-fb758fc9353d}</Project>
-      <Name>AzureWebRole.MessageProcessor.ServiceBus</Name>
+      <Name>MessageProcessor.ServiceBus</Name>
     </ProjectReference>
-    <ProjectReference Include="..\AzureWebRole.MessageProcessor.Unity\AzureWebRole.MessageProcessor.Unity.csproj">
+    <ProjectReference Include="..\AzureWebRole.MessageProcessor.Unity\MessageProcessor.Unity.csproj">
       <Project>{3fb9015d-fc7f-4051-8711-f1d1f5f2a6f4}</Project>
-      <Name>AzureWebRole.MessageProcessor.Unity</Name>
+      <Name>MessageProcessor.Unity</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

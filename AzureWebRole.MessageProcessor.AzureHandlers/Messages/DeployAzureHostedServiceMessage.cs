@@ -1,11 +1,11 @@
-﻿using AzureWebRole.MessageProcessor.Core;
+﻿using SInnovations.Azure.MessageProcessor.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
+namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Messages
 {
     public class DeployAzureHostedServiceMessage : AzureSubscriptionBaseMessage
     {

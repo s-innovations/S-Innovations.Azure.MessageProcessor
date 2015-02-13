@@ -5,11 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SInnovations.Azure.MessageProcessor.Core")]
-
+[assembly: AssemblyTitle("MessageProcessor.BlobStorageRepository")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("SInnovations.Azure.MessageProcessor.Core")]
-[assembly: AssemblyCopyright("Copyright ©  2014")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("MessageProcessor.BlobStorageRepository")]
+[assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -19,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("1ac0b77c-1f89-4f2f-ade0-117349072b18")]
+[assembly: Guid("d4f82899-98f3-4f41-9c2b-104ae9fa3309")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -33,6 +34,3 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0")]
-[assembly: AssemblyCompany("S-Innovations v/Poul K. Sørensen")]
-[assembly: AssemblyDescription("The core library of Azure Web Role Message Processor, a plugable queue message handler system.")]

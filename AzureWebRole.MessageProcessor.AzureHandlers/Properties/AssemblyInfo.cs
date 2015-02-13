@@ -5,10 +5,10 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("AzureWebRole.MessageProcessor.AzureHandlers")]
+[assembly: AssemblyTitle("SInnovations.Azure.MessageProcessor.AzureHandlers")]
 
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("AzureWebRole.MessageProcessor.AzureHandlers")]
+[assembly: AssemblyProduct("SInnovations.Azure.MessageProcessor.AzureHandlers")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

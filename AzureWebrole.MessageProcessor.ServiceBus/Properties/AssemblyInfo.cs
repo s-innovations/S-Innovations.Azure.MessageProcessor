@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("AzureWebrole.MessageProcessor.ServiceBus")]
+[assembly: AssemblyTitle("SInnovations.Azure.MessageProcessor.ServiceBus")]
 
 [assembly: AssemblyConfiguration("")]
 
-[assembly: AssemblyProduct("AzureWebrole.MessageProcessor.ServiceBus")]
+[assembly: AssemblyProduct("SInnovations.Azure.MessageProcessor.ServiceBus")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -18,7 +18,7 @@ using System.Runtime.InteropServices;
 // to COM components.  If you need to access a type in this assembly from 
 // COM, set the ComVisible attribute to true on that type.
 [assembly: ComVisible(false)]
-[assembly: InternalsVisibleTo("AzureWebRole.MessageProcessor.Test")]
+[assembly: InternalsVisibleTo("SInnovations.Azure.MessageProcessor.Test")]
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("610e992f-718e-4d29-abe1-6b6198a57d19")]
 

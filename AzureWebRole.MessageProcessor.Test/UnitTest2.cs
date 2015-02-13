@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace AzureWebRole.MessageProcessor.Test
+namespace SInnovations.Azure.MessageProcessor.Test
 {
     [TestClass]
     public class UnitTest2

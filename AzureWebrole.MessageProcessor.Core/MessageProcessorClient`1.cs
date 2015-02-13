@@ -1,4 +1,4 @@
-﻿using AzureWebRole.MessageProcessor.Core.Notifications;
+﻿using SInnovations.Azure.MessageProcessor.Core.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.Core
+namespace SInnovations.Azure.MessageProcessor.Core
 {
     public interface IMessageProcessorClient : IDisposable
     {
@@ -128,12 +128,14 @@ namespace AzureWebRole.MessageProcessor.Core
         public static TimeSpan DefaultLockRenewTimer = TimeSpan.FromSeconds(30);
         public async Task OnMessageAsync(MessageType message)
         {
-            BaseMessage baseMessage = _options.Provider.FromMessage<BaseMessage>(message);
+            BaseMessage baseMessage = await _options.Provider.FromMessageAsync<BaseMessage>(message);
             baseMessage.MessageId = await _options.Provider.GetMessageIdForMessageAsync(message);
             _lastMessageRecieved = DateTimeOffset.UtcNow;
             Stopwatch sw = Stopwatch.StartNew();
 
             Trace.WriteLine(string.Format("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
+
+
 
             using (var resolver = _options.ResolverProvider())
             {
@@ -204,6 +206,7 @@ namespace AzureWebRole.MessageProcessor.Core
         public async Task ProcessMessageAsync<T>(T message, IMessageHandlerResolver resolver) where T : BaseMessage
         {
 
+           
             //Voodoo to construct the right message handler type
             Type handlerType = typeof(IMessageHandler<>);
             Type[] typeArgs = { message.GetType() };

@@ -1,6 +1,6 @@
-﻿using AzureWebRole.MessageProcessor.AzureHandlers.Helpers;
-using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
-using AzureWebRole.MessageProcessor.Core;
+﻿using SInnovations.Azure.MessageProcessor.AzureHandlers.Helpers;
+using SInnovations.Azure.MessageProcessor.AzureHandlers.Messages;
+using SInnovations.Azure.MessageProcessor.Core;
 using Microsoft.Azure;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Management.Compute;
@@ -14,7 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
+namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
 {
     public class AzureHostedServicesMessageHandler : IMessageHandler<DeployAzureHostedServiceMessage>
     {

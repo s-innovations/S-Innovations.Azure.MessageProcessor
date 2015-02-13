@@ -9,10 +9,11 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
-using AzureWebRole.MessageProcessor.Core;
+using SInnovations.Azure.MessageProcessor.Core;
+using SInnovations.Azure.MessageProcessor.Core.Serialization;
 
 
-namespace AzureWebRole.MessageProcessor.ServiceBus
+namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
     public interface ServiceBusMessageProcessorClientProvider : IMessageProcessorClientProvider<BrokeredMessage>
     {
@@ -399,10 +400,10 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
             }
 
         }
-
-        public T FromMessage<T>(BrokeredMessage m) where T : BaseMessage
+        static MethodInfo method = typeof(BrokeredMessage).GetMethod("GetBody", new Type[] { });
+        public async Task<T> FromMessageAsync<T>(BrokeredMessage m) where T : BaseMessage
         {
-
+   
             var messageBodyType =
                       Type.GetType(m.Properties["messageType"].ToString());
             if (messageBodyType == null)
@@ -413,10 +414,22 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
                // m.DeadLetter();
                 throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString()));
             }
-            MethodInfo method = typeof(BrokeredMessage).GetMethod("GetBody", new Type[] { });
+            
             MethodInfo generic = method.MakeGenericMethod(messageBodyType);
-            var messageBody = generic.Invoke(m, null);
-            return messageBody as T;
+            var messageBody = (T)generic.Invoke(m, null);
+
+
+            if (Options.RepositoryProvider != null && messageBody is IModelBasedMessage)
+            {
+                var modelHolder = messageBody as IModelBasedMessage;
+
+                var repository = Options.RepositoryProvider.GetRepository();
+                await repository.GetModelAsync(modelHolder);
+
+            }
+
+
+            return messageBody;
         }
         private BrokeredMessage ToMessage<T>(T message) where T : BaseMessage
         {
@@ -474,14 +487,42 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
             return LazyTopicClient.Value.SendBatchAsync(messages);
         }
+       
+        public async Task SendMessageAsync<T>(T message) where T : BaseMessage
+        {
+            if (Options.RepositoryProvider != null && message is IModelBasedMessage)
+            {
+                  var modelHolder = message as IModelBasedMessage;
+               
+                var repository =  Options.RepositoryProvider.GetRepository();
+                await repository.SaveModelAsync(modelHolder);
 
-        public Task SendMessageAsync<T>(T message) where T : BaseMessage
-        {
-            return SendMessageAsync(ToMessage<T>(message));
+            }
+
+            await SendMessageAsync(ToMessage<T>(message));
         }
-        public Task SendMessagesAsync<T>(IEnumerable<T> messages) where T : BaseMessage
+        public async Task SendMessagesAsync<T>(IEnumerable<T> messages) where T : BaseMessage
         {
-            return SendMessagesAsync(messages.Select(ToMessage<T>));
+            if (Options.RepositoryProvider != null)
+            {
+                var modelBasedMsgs = messages.OfType<IModelBasedMessage>().ToArray();
+
+                var block = new ActionBlock<IModelBasedMessage>(async (modelHolder) =>
+                {
+                    var repository = Options.RepositoryProvider.GetRepository();
+                    await repository.SaveModelAsync(modelHolder);
+                });
+
+
+                foreach (var msg in modelBasedMsgs)
+                    block.Post(msg);
+
+                block.Complete();
+                await block.Completion;
+
+
+            }
+            await SendMessagesAsync(messages.Select(ToMessage<T>));
         }
 
 

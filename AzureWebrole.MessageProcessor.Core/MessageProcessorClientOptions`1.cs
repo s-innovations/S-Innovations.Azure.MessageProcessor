@@ -1,11 +1,11 @@
-﻿using AzureWebRole.MessageProcessor.Core.Notifications;
+﻿using SInnovations.Azure.MessageProcessor.Core.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.Core
+namespace SInnovations.Azure.MessageProcessor.Core
 {
     public class MessageProcessorClientOptions<MessageType>
     {

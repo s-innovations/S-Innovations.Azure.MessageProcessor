@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Ninject.Extensions.Conventions;
 using System.Reflection;
-using AzureWebRole.MessageProcessor.Core;
+using SInnovations.Azure.MessageProcessor.Core;
 
-namespace AzureWebRole.MessageProcessor.Ninject
+namespace SInnovations.Azure.MessageProcessor.Ninject
 {
     public class NinjectHandlerResolver : IMessageHandlerResolver
     {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.Core.Notifications
+namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 {
     public class MovingToDeadLetterNotification : BaseNotificationMessage
     {

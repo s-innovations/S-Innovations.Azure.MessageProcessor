@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.Core
+namespace SInnovations.Azure.MessageProcessor.Core
 {
     public interface IMessageProcessorClientProvider<TOptions, MessageType> : IDisposable where TOptions : IMessageProcessorProviderOptions<MessageType>
     {
         TOptions Options { get; }
-        T FromMessage<T>(MessageType m) where T : BaseMessage;
+        Task<T> FromMessageAsync<T>(MessageType m) where T : BaseMessage;
        
     }
 }

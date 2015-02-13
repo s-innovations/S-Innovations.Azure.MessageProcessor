@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.AzureHandlers.Messages
+namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Messages
 {
     public class DeleteAzureHostedServiceMessage : AzureSubscriptionBaseMessage
     {

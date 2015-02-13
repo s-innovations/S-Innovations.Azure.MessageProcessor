@@ -1,6 +1,6 @@
-﻿using AzureWebRole.MessageProcessor.AzureHandlers.Helpers;
-using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
-using AzureWebRole.MessageProcessor.Core;
+﻿using SInnovations.Azure.MessageProcessor.AzureHandlers.Helpers;
+using SInnovations.Azure.MessageProcessor.AzureHandlers.Messages;
+using SInnovations.Azure.MessageProcessor.Core;
 using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Management.Compute;
 using Microsoft.WindowsAzure.Management.Compute.Models;
@@ -12,7 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.AzureHandlers.Handlers
+namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
 {
     public class DeleteAzureHostedServicesDeploymentMessageHandler : IMessageHandler<DeleteAzureHostedServiceMessage>
     {

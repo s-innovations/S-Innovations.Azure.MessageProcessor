@@ -6,10 +6,14 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.Core
+namespace SInnovations.Azure.MessageProcessor.Core
 {
+    public interface IBaseMessage
+    {
+        string MessageId { get; }
+    }
     [Serializable]
-    public abstract class BaseMessage
+    public abstract class BaseMessage : IBaseMessage
     {
         /// <summary>
         /// A message ID for the current message.

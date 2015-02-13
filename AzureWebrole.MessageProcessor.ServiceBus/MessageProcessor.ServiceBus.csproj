@@ -7,8 +7,8 @@
     <ProjectGuid>{751072EE-964F-4A83-8B93-FB758FC9353D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AzureWebRole.MessageProcessor.ServiceBus</RootNamespace>
-    <AssemblyName>AzureWebRole.MessageProcessor.ServiceBus</AssemblyName>
+    <RootNamespace>SInnovations.Azure.MessageProcessor.ServiceBus</RootNamespace>
+    <AssemblyName>S-Innovations.Azure.MessageProcessor.ServiceBus</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>
@@ -42,7 +42,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.ServiceBus, Version=2.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\WindowsAzure.ServiceBus.2.6.0\lib\net40-full\Microsoft.ServiceBus.dll</HintPath>
+      <HintPath>..\packages\WindowsAzure.ServiceBus.2.6.1\lib\net40-full\Microsoft.ServiceBus.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.WindowsAzure.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.WindowsAzure.ConfigurationManager.2.0.3\lib\net40\Microsoft.WindowsAzure.Configuration.dll</HintPath>
@@ -70,9 +70,9 @@
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\AzureWebRole.MessageProcessor.Core.csproj">
+    <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj">
       <Project>{5f5caeba-6724-4a10-a38a-80b0489e579c}</Project>
-      <Name>AzureWebRole.MessageProcessor.Core</Name>
+      <Name>MessageProcessor.Core</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

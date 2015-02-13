@@ -1,4 +1,4 @@
-﻿using AzureWebRole.MessageProcessor.Core;
+﻿using SInnovations.Azure.MessageProcessor.Core;
 using Microsoft.Practices.Unity;
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.Unity
+namespace SInnovations.Azure.MessageProcessor.Unity
 {
     /// <summary>
     /// NOT TESTED
@@ -27,10 +27,9 @@ namespace AzureWebRole.MessageProcessor.Unity
         }
         public object GetHandler(Type constructed)
         {
-
             return Container.Resolve(constructed);
-
         }
+        
 
         private void ConfigureUnity(IEnumerable<Assembly> assemblies)
         {

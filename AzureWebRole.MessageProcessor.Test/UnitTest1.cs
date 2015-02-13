@@ -1,13 +1,13 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
-using AzureWebRole.MessageProcessor.ServiceBus;
+using SInnovations.Azure.MessageProcessor.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using AzureWebRole.MessageProcessor.Core;
+using SInnovations.Azure.MessageProcessor.Core;
 
-namespace AzureWebRole.MessageProcessor.Test
+namespace SInnovations.Azure.MessageProcessor.Test
 {
 
     [Serializable]

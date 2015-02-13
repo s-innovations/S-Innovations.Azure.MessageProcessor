@@ -1,4 +1,4 @@
-﻿using AzureWebRole.MessageProcessor.AzureHandlers.Messages;
+﻿using SInnovations.Azure.MessageProcessor.AzureHandlers.Messages;
 using Microsoft.Azure;
 using Microsoft.WindowsAzure;
 using System;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.AzureHandlers.Helpers
+namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Helpers
 {
     public static class CredentialsHelper
     {

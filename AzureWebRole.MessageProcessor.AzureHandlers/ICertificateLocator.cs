@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.AzureHandlers
+namespace SInnovations.Azure.MessageProcessor.AzureHandlers
 {
     public interface ICertificateLocator
     {

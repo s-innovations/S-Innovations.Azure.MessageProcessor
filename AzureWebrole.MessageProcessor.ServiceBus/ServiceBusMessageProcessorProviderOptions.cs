@@ -1,4 +1,5 @@
-﻿using AzureWebRole.MessageProcessor.Core;
+﻿using SInnovations.Azure.MessageProcessor.Core;
+using SInnovations.Azure.MessageProcessor.Core.Serialization;
 using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AzureWebRole.MessageProcessor.ServiceBus
+namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
 
     public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<BrokeredMessage>
@@ -85,6 +86,13 @@ namespace AzureWebRole.MessageProcessor.ServiceBus
 
 
         public TimeSpan? AutoRenewLockTime
+        {
+            get;
+            set;
+        }
+
+
+        public IModelRepositoryProvider RepositoryProvider
         {
             get;
             set;

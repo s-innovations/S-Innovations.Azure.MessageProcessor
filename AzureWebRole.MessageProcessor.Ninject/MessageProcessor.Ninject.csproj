@@ -7,8 +7,8 @@
     <ProjectGuid>{6E872116-72F1-4389-A3A0-43537BC4F376}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AzureWebRole.MessageProcessor.Ninject</RootNamespace>
-    <AssemblyName>AzureWebRole.MessageProcessor.Ninject</AssemblyName>
+    <RootNamespace>SInnovations.Azure.MessageProcessor.Ninject</RootNamespace>
+    <AssemblyName>S-Innovations.Azure.MessageProcessor.Ninject</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SccProjectName>
@@ -61,9 +61,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\AzureWebRole.MessageProcessor.Core.csproj">
+    <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj">
       <Project>{5f5caeba-6724-4a10-a38a-80b0489e579c}</Project>
-      <Name>AzureWebRole.MessageProcessor.Core</Name>
+      <Name>MessageProcessor.Core</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
