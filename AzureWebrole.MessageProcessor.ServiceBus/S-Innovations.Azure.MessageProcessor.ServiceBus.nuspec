@@ -11,9 +11,6 @@
     <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>Tag1 Tag2</tags>
-    <dependencies>
-      <dependency id="S-Innovations.Azure.MessageProcessor" version="$version$" />
-    </dependencies>
   </metadata>
  
 </package>
