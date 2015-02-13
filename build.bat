@@ -14,8 +14,8 @@ REM Build
 
 REM Package
 mkdir Build
-cmd /c %nuget% pack "AzureWebRole.MessageProcessor.AzureHandlers\MessageProcessor.AzureHandlers.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
-cmd /c %nuget% pack "AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
-cmd /c %nuget% pack "AzureWebrole.MessageProcessor.ServiceBus\MessageProcessor.ServiceBus.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
-cmd /c %nuget% pack "AzureWebRole.MessageProcessor.Unity\MessageProcessor.Unity.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
-cmd /c %nuget% pack "MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
+cmd /c %nuget% pack "AzureWebRole.MessageProcessor.AzureHandlers\MessageProcessor.AzureHandlers.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% 
+cmd /c %nuget% pack "AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% 
+cmd /c %nuget% pack "AzureWebrole.MessageProcessor.ServiceBus\MessageProcessor.ServiceBus.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% 
+cmd /c %nuget% pack "AzureWebRole.MessageProcessor.Unity\MessageProcessor.Unity.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config%
+cmd /c %nuget% pack "MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% 
