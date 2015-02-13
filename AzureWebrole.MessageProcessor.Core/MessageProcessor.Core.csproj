@@ -68,7 +68,7 @@
     <Compile Include="Serialization\IModelRepositoryProvider.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="AzureWebRole.MessageProcessor.Core.nuspec" />
+    <None Include="S-Innovations.Azure.MessageProcessor.nuspec" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

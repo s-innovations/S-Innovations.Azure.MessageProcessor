@@ -93,6 +93,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="S-Innovations.Azure.MessageProcessor.AzureHandlers.nuspec" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj">

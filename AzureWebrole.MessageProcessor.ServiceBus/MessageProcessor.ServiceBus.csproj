@@ -78,6 +78,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <None Include="S-Innovations.Azure.MessageProcessor.ServiceBus.nuspec" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Internal\" />
