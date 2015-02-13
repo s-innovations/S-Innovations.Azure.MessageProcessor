@@ -18,4 +18,4 @@ cmd /c %nuget% pack "AzureWebRole.MessageProcessor.AzureHandlers\MessageProcesso
 cmd /c %nuget% pack "AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
 cmd /c %nuget% pack "AzureWebrole.MessageProcessor.ServiceBus\MessageProcessor.ServiceBus.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
 cmd /c %nuget% pack "AzureWebRole.MessageProcessor.Unity\MessageProcessor.Unity.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
-cmd /c %nuget% pack "MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
+cmd /c %nuget% pack "MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository.csproj" -IncludeReferencedProjects -o Build -p Configuration=%config% %version%
