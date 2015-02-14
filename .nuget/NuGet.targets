@@ -60,7 +60,7 @@
         <NuGetCommand Condition=" '$(OS)' == 'Windows_NT'">"$(NuGetExePath)"</NuGetCommand>
         <NuGetCommand Condition=" '$(OS)' != 'Windows_NT' ">mono --runtime=v4.0.30319 $(NuGetExePath)</NuGetCommand>
 
-        <PackageOutputDir Condition="$(PackageOutputDir) == ''">$(TargetDir.Trim('\\'))</PackageOutputDir>
+        <PackageOutputDir Condition="$(PackageOutputDir) == ''">$(SolutionDir.Trim('\\'))</PackageOutputDir>
 
         <RequireConsentSwitch Condition=" $(RequireRestoreConsent) == 'true' ">-RequireConsent</RequireConsentSwitch>
         <NonInteractiveSwitch Condition=" '$(VisualStudioVersion)' != '' AND '$(OS)' == 'Windows_NT' ">-NonInteractive</NonInteractiveSwitch>
@@ -70,8 +70,8 @@
 
         <!-- Commands -->
         <RestoreCommand>$(NuGetCommand) install "$(PackagesConfig)" -source "$(PackageSources)"  $(NonInteractiveSwitch) $(RequireConsentSwitch) -solutionDir $(PaddedSolutionDir)</RestoreCommand>
-        <BuildCommand>$(NuGetCommand) pack "$(ProjectPath)" -Properties "Configuration=$(Configuration);Platform=$(Platform)" $(NonInteractiveSwitch) -OutputDirectory "$(PackageOutputDir)" -IncludeReferencedProjects</BuildCommand>
-
+      <BuildCommand>$(NuGetCommand) pack  "$(ProjectPath)" -Prop "Configuration=$(Configuration);Platform=$(Platform);TargetPath=$(OutDir)$(AssemblyName)$(TargetExt)" $(NonInteractiveSwitch) $(PackageOutputSwitch) -IncludeReferencedProjects  -verbosity detailed</BuildCommand>
+      
         <!-- We need to ensure packages are restored prior to assembly resolve -->
         <BuildDependsOn Condition="$(RestorePackages) == 'true'">
             RestorePackages;

@@ -70,6 +70,7 @@
     <Compile Include="Serialization\IModelRepositoryProvider.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="NuGet.Config" />
     <None Include="packages.config" />
     <None Include="S-Innovations.Azure.MessageProcessor.nuspec" />
   </ItemGroup>
