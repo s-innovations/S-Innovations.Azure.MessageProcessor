@@ -13,10 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Unity", "A
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D19EBBEB-3F2C-4FAD-8142-3E11A4DA9488}"
 	ProjectSection(SolutionItems) = preProject
-		build.bat = build.bat
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
+		TextFile1.txt = TextFile1.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Test", "AzureWebRole.MessageProcessor.Test\MessageProcessor.Test.csproj", "{3B1FE177-4D29-491D-805D-9971E79A3BFD}"
