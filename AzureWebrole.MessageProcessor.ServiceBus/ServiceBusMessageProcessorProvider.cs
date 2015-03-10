@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks.Dataflow;
 using SInnovations.Azure.MessageProcessor.Core;
 using SInnovations.Azure.MessageProcessor.Core.Serialization;
+using SInnovations.Azure.MessageProcessor.Core.Logging;
 
 
 namespace SInnovations.Azure.MessageProcessor.ServiceBus
@@ -118,6 +119,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
     }
     public class ServiceBusMessageProcessorProvider : ServiceBusMessageProcessorClientProvider
     {
+        static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
 
@@ -454,6 +456,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         //}
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
+            Logger.Info("ExceptionReceived");
             if (e.Exception != null)
                 Trace.TraceError("{0} {1}", e.Exception, e.Exception.InnerException);
 
