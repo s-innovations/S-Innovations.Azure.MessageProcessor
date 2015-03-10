@@ -176,7 +176,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
                         var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer), MaximumTimeTask);
                         if (t == MaximumTimeTask)
                             throw new TimeoutException(string.Format("The handler could not finish in given time :{0}", timeout));
-                        Trace.TraceInformation("Renewing Task<processingTask:{0}>", task.Status.ToString());
+                        Trace.TraceInformation("Renewing Task<processingTask:{0}>", processingTask.Status.ToString());
                         try
                         {
                             await _options.Provider.RenewLockAsync(message);
