@@ -21,10 +21,17 @@ namespace SInnovations.Azure.MessageProcessor.Unity
         {
             ConfigureUnity(assemblies);
         }
-        public UnityHandlerResolver(IUnityContainer container)
+        public UnityHandlerResolver(IUnityContainer container) : this(container,true)
         {
-            Container = container.CreateChildContainer();
+             
+          
         }
+        public UnityHandlerResolver(IUnityContainer container, bool createChild)
+        {
+
+            Container = createChild ? container.CreateChildContainer() : container;
+        }
+
         public object GetHandler(Type constructed)
         {
             return Container.Resolve(constructed);
