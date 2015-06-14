@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Unity", "A
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D19EBBEB-3F2C-4FAD-8142-3E11A4DA9488}"
 	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
@@ -24,6 +26,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.AzureHandlers", "AzureWebRole.MessageProcessor.AzureHandlers\MessageProcessor.AzureHandlers.csproj", "{50F3E086-DCAF-4B96-A85C-334239B9CEFA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.BlobStorageRepository", "MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository.csproj", "{A5F70B3A-3328-44BF-87C4-36520E3B294E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.ApplicationInsights", "MessageProcessor.ApplicationInsight\MessageProcessor.ApplicationInsights.csproj", "{1C035FE6-6C79-43B3-83FC-3354943E975B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,6 +63,10 @@ Global
 		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
