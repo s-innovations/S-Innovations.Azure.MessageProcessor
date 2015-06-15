@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\ApplicationInsightsAttribute.cs" />
+    <Compile Include="IEventTelemetryMetadataProvider.cs" />
     <Compile Include="MessageCompletedNotificationExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
