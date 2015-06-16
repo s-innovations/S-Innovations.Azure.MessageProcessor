@@ -17,13 +17,13 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
         {
             var t = new EventTelemetry(name)
             {
-                Timestamp = DateTimeOffset.Now, 
+                Timestamp = DateTimeOffset.Now,
             };
             t.Properties.Add("MessageId", notice.Message.MessageId);
             t.Properties.Add("MessageType", notice.Message.GetType().Name);
             t.Metrics.Add("Elapsed", notice.Elapsed.TotalMilliseconds);
-           
-   
+
+
 
             var props = notice.Message.GetType().GetProperties().Where(
                 prop => Attribute.IsDefined(prop, typeof(ApplicationInsightsAttribute)));
@@ -35,9 +35,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
                 if (attr.EventTelemetryMetadataProvider != null)
                 {
                     var provider = notice.Resolver.GetHandler(attr.EventTelemetryMetadataProvider) as IEventTelemetryMetadataProvider;
-
                     await provider.AddMetadataAsync(t, attr.PropertyTypeName ?? prop.Name, prop.GetValue(notice.Message));
-
                 }
                 else
                 {
@@ -46,7 +44,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
             }
 
 
-           
+
 
             return t;
         }
