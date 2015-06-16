@@ -13,12 +13,12 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
     public static class MessageCompletedNotificationExtensions
     {
 
-        public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string name = "MessageCompleted")
+        public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string name = null)
         {
-            var t = new EventTelemetry(name)
-            {
-                Timestamp = DateTimeOffset.Now,
-            };
+            var t = new EventTelemetry(name ?? (Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), true) ? 
+                ((ApplicationInsightsAttribute)notice.Message.GetType().GetCustomAttributes(typeof(ApplicationInsightsAttribute), true)[0]).EventTelemetryName  ?? "MessageComplated"
+                : "MessageCompleted"));
+            
             t.Properties.Add("MessageId", notice.Message.MessageId);
             t.Properties.Add("MessageType", notice.Message.GetType().Name);
             t.Metrics.Add("Elapsed", notice.Elapsed.TotalMilliseconds);
@@ -35,11 +35,11 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
                 if (attr.EventTelemetryMetadataProvider != null)
                 {
                     var provider = notice.Resolver.GetHandler(attr.EventTelemetryMetadataProvider) as IEventTelemetryMetadataProvider;
-                    await provider.AddMetadataAsync(t, attr.PropertyTypeName ?? prop.Name, prop.GetValue(notice.Message));
+                    await provider.AddMetadataAsync(t, attr.PropertyName ?? prop.Name, prop.GetValue(notice.Message));
                 }
                 else
                 {
-                    t.Properties.Add(attr.PropertyTypeName ?? prop.Name, prop.GetValue(notice.Message).ToString());
+                    t.Properties.Add(attr.PropertyName ?? prop.Name, prop.GetValue(notice.Message).ToString());
                 }
             }
 
