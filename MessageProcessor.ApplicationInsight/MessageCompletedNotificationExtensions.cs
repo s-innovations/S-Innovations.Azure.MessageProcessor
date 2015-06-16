@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using SInnovations.Azure.MessageProcessor.ApplicationInsights;
 using SInnovations.Azure.MessageProcessor.ApplicationInsights.Attributes;
@@ -12,7 +13,15 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 {
     public static class MessageCompletedNotificationExtensions
     {
+        public static async Task TrackMessageCompletedAsync(this MessageCompletedNotification notice, bool classAttributeRequired = true, bool inheritLookup = true)
+        {
 
+            if (!classAttributeRequired || Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), inheritLookup))
+            {
+                TelemetryClient rtClient = new TelemetryClient();
+                rtClient.TrackEvent(await notice.CreateEventTelemetryAsync());
+            }
+        }
         public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string name = null)
         {
             var t = new EventTelemetry(name ?? (Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), true) ? 
