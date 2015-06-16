@@ -24,14 +24,18 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
                 rtClient.TrackEvent(await notice.CreateEventTelemetryAsync());
             }
         }
-        public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string name = null)
+        public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string eventName = "MessageComplated")
         {
-            var t = new EventTelemetry(name ?? (Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), true) ? 
-                ((ApplicationInsightsAttribute)notice.Message.GetType().GetCustomAttributes(typeof(ApplicationInsightsAttribute), true)[0]).EventTelemetryName  ?? "MessageComplated"
-                : "MessageCompleted"));
-            
+            var t = new EventTelemetry(eventName); //?? ? 
+               //   ?? 
+               // : "MessageCompleted"));
+            var messageType = notice.Message.GetType().Name;
+            if ((Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), true)))
+                messageType = ((ApplicationInsightsAttribute)notice.Message.GetType().GetCustomAttributes(typeof(ApplicationInsightsAttribute), true)[0]).MessageTypeName;
+
+
             t.Properties.Add("MessageId", notice.Message.MessageId);
-            t.Properties.Add("MessageType", notice.Message.GetType().Name);
+            t.Properties.Add("MessageType", messageType);
             t.Metrics.Add("Elapsed", notice.Elapsed.TotalMilliseconds);
 
 

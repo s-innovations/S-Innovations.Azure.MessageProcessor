@@ -11,7 +11,7 @@ namespace SInnovations.Azure.MessageProcessor.ApplicationInsights.Attributes
         public Type EventTelemetryMetadataProviderType { get; set; }
         public string EventTelemetryMetadataProviderTypeName { get; set; }
         public string PropertyName { get; set; }
-        public string EventTelemetryName { get; set; }
+        public string MessageTypeName { get; set; }
         public ApplicationInsightsAttribute()
         {
             
