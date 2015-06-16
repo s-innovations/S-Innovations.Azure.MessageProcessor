@@ -31,10 +31,15 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
             foreach (var prop in props)
             {
                 ApplicationInsightsAttribute attr = (ApplicationInsightsAttribute)prop.GetCustomAttributes(typeof(ApplicationInsightsAttribute), true)[0];
-
-                if (attr.EventTelemetryMetadataProvider != null)
+                if (attr.EventTelemetryMetadataProviderType == null && !string.IsNullOrEmpty(attr.EventTelemetryMetadataProviderTypeName))
                 {
-                    var provider = notice.Resolver.GetHandler(attr.EventTelemetryMetadataProvider) as IEventTelemetryMetadataProvider;
+                    attr.EventTelemetryMetadataProviderType = Type.GetType(attr.EventTelemetryMetadataProviderTypeName);
+                }
+
+
+                if (attr.EventTelemetryMetadataProviderType != null)
+                {
+                    var provider = notice.Resolver.GetHandler(attr.EventTelemetryMetadataProviderType) as IEventTelemetryMetadataProvider;
                     await provider.AddMetadataAsync(t, attr.PropertyName ?? prop.Name, prop.GetValue(notice.Message));
                 }
                 else
