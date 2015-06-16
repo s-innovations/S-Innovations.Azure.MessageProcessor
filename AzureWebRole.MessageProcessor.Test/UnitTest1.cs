@@ -36,6 +36,14 @@ namespace SInnovations.Azure.MessageProcessor.Test
     public class UnitTest1
     {
         [TestMethod]
+        public void TestMethod0()
+        {
+            var msg = new BrokeredMessage("dummy");
+            Assert.AreNotSame(null, msg.MessageId);
+            Assert.AreNotSame("", msg.MessageId);
+
+        }
+        [TestMethod]
         public void TestMethod1()
         {
 

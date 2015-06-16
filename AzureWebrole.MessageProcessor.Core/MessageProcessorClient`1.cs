@@ -131,6 +131,10 @@ namespace SInnovations.Azure.MessageProcessor.Core
             BaseMessage baseMessage = await _options.Provider.FromMessageAsync<BaseMessage>(message);
             baseMessage.MessageId = await _options.Provider.GetMessageIdForMessageAsync(message);
             _lastMessageRecieved = DateTimeOffset.UtcNow;
+            var enqued = await _options.Provider.GetEnqueuedTimeUtcAsync(message);
+            var transmitTime = DateTime.UtcNow.Subtract(enqued);
+
+       
             Stopwatch sw = Stopwatch.StartNew();
 
             Trace.WriteLine(string.Format("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
@@ -193,8 +197,16 @@ namespace SInnovations.Azure.MessageProcessor.Core
                     await _options.Provider.CompleteMessageAsync(message);
 
                     sw.Stop();
+                    
+
                     if (_options.Notifications != null)
-                        await _options.Notifications.MessageCompletedAsync(new MessageCompletedNotification(resolver) { Message = baseMessage, Elapsed = sw.Elapsed });
+                        await _options.Notifications.MessageCompletedAsync(
+                            new MessageCompletedNotification(resolver) 
+                                {
+                                    Message = baseMessage, 
+                                    Elapsed = sw.Elapsed,
+                                    ElapsedUntilReceived = transmitTime,
+                                });
 
                 }
                 finally

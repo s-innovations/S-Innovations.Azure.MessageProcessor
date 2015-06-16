@@ -13,7 +13,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 {
     public static class MessageCompletedNotificationExtensions
     {
-        public static async Task TrackMessageCompletedAsync(this MessageCompletedNotification notice, bool classAttributeRequired = true, bool inheritLookup = true)
+        public static async Task TrackMessageCompletedAsync(this MessageCompletedNotification notice,string eventName = "MessageComplated", bool classAttributeRequired = true, bool inheritLookup = true)
         {
 
             if (!classAttributeRequired || Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), inheritLookup))
@@ -21,7 +21,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 
                 TelemetryClient rtClient = notice.Resolver.GetHandler(typeof(TelemetryClient)) as TelemetryClient;
 
-                rtClient.TrackEvent(await notice.CreateEventTelemetryAsync());
+                rtClient.TrackEvent(await notice.CreateEventTelemetryAsync(eventName));
             }
         }
         public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string eventName = "MessageComplated")
@@ -36,8 +36,8 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 
             t.Properties.Add("MessageId", notice.Message.MessageId);
             t.Properties.Add("MessageType", messageType);
-            t.Metrics.Add("Elapsed", notice.Elapsed.TotalMilliseconds);
-
+            t.Metrics.Add("Elapsed", notice.Elapsed.TotalSeconds);
+            t.Metrics.Add("ElapsedUntilReceived", notice.ElapsedUntilReceived.TotalSeconds);
 
 
             var props = notice.Message.GetType().GetProperties().Where(

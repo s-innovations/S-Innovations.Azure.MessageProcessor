@@ -26,5 +26,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
 
         Task StopListeningAsync();
+
+        Task<DateTime> GetEnqueuedTimeUtcAsync(MessageType message);
     }
 }

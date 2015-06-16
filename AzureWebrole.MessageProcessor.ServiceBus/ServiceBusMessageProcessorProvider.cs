@@ -438,6 +438,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             var brokeredMessage = new BrokeredMessage(message);
             var typename = message.GetType().AssemblyQualifiedName;
             brokeredMessage.Properties["messageType"] = typename;
+   
 
             if (options.CorrelationIdProvider != null)
                 brokeredMessage.CorrelationId = options.CorrelationIdProvider(message);
@@ -485,6 +486,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         }
         private Task SendMessagesAsync(IEnumerable<BrokeredMessage> messages)
         {
+            
             if (SupportFilteredTopic)
                 return ScaledTopicClient.SendBatchAsync(messages);
 
@@ -573,5 +575,15 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
 
         }
+
+
+
+        public Task<DateTime> GetEnqueuedTimeUtcAsync(BrokeredMessage message)
+        {
+            return Task.FromResult(message.EnqueuedTimeUtc);
+        }
+
+
+       
     }
 }

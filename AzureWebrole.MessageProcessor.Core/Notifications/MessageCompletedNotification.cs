@@ -10,5 +10,6 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
     {
         public MessageCompletedNotification(IMessageHandlerResolver resolver) : base(resolver) { }
         public TimeSpan Elapsed { get; set; }
+        public TimeSpan ElapsedUntilReceived { get; set; }
     }
 }
