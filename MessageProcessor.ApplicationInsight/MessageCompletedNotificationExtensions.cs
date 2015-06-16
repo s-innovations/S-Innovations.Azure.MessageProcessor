@@ -22,6 +22,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
             t.Properties.Add("MessageId", notice.Message.MessageId);
             t.Properties.Add("MessageType", notice.Message.GetType().Name);
             t.Metrics.Add("Elapsed", notice.Elapsed.TotalMilliseconds);
+           
    
 
             var props = notice.Message.GetType().GetProperties().Where(
@@ -35,7 +36,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
                 {
                     var provider = notice.Resolver.GetHandler(attr.EventTelemetryMetadataProvider) as IEventTelemetryMetadataProvider;
 
-                    await provider.AddMetadataAsync(t);
+                    await provider.AddMetadataAsync(t,notice,attr);
 
                 }
                 else

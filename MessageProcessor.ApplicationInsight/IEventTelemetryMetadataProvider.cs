@@ -9,6 +9,7 @@ namespace SInnovations.Azure.MessageProcessor.ApplicationInsights
     public interface IEventTelemetryMetadataProvider
     {
 
-        Task AddMetadataAsync(Microsoft.ApplicationInsights.DataContracts.EventTelemetry t);
+      
+        Task AddMetadataAsync(Microsoft.ApplicationInsights.DataContracts.EventTelemetry t, Core.Notifications.MessageCompletedNotification notice, Attributes.ApplicationInsightsAttribute attr);
     }
 }
