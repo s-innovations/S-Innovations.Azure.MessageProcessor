@@ -18,7 +18,9 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 
             if (!classAttributeRequired || Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), inheritLookup))
             {
-                TelemetryClient rtClient = new TelemetryClient();
+
+                TelemetryClient rtClient = notice.Resolver.GetHandler(typeof(TelemetryClient)) as TelemetryClient;
+
                 rtClient.TrackEvent(await notice.CreateEventTelemetryAsync());
             }
         }
