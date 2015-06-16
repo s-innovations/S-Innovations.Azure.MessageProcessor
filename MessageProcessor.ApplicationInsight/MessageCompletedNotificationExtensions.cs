@@ -36,7 +36,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
                 {
                     var provider = notice.Resolver.GetHandler(attr.EventTelemetryMetadataProvider) as IEventTelemetryMetadataProvider;
 
-                    await provider.AddMetadataAsync(t,notice,attr);
+                    await provider.AddMetadataAsync(t, attr.PropertyTypeName ?? prop.Name, prop.GetValue(notice.Message));
 
                 }
                 else

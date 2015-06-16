@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.ApplicationInsights.DataContracts;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,6 @@ namespace SInnovations.Azure.MessageProcessor.ApplicationInsights
     public interface IEventTelemetryMetadataProvider
     {
 
-      
-        Task AddMetadataAsync(Microsoft.ApplicationInsights.DataContracts.EventTelemetry t, Core.Notifications.MessageCompletedNotification notice, Attributes.ApplicationInsightsAttribute attr);
+        Task AddMetadataAsync(EventTelemetry t, string propertyName, object PropertyValue);
     }
 }
