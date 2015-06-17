@@ -13,7 +13,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 {
     public static class MessageCompletedNotificationExtensions
     {
-        public static async Task TrackMessageCompletedAsync(this MessageCompletedNotification notice,string eventName = "MessageComplated", bool classAttributeRequired = true, bool inheritLookup = true)
+        public static async Task TrackMessageCompletedAsync(this MessageCompletedNotification notice,string eventName = "MessageCompleted", bool classAttributeRequired = true, bool inheritLookup = true)
         {
 
             if (!classAttributeRequired || Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), inheritLookup))
@@ -24,11 +24,10 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
                 rtClient.TrackEvent(await notice.CreateEventTelemetryAsync(eventName));
             }
         }
-        public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string eventName = "MessageComplated")
+        public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string eventName = "MessageCompleted")
         {
-            var t = new EventTelemetry(eventName); //?? ? 
-               //   ?? 
-               // : "MessageCompleted"));
+            var t = new EventTelemetry(eventName); 
+
             var messageType = notice.Message.GetType().Name;
             if ((Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), true)))
                 messageType = ((ApplicationInsightsAttribute)notice.Message.GetType().GetCustomAttributes(typeof(ApplicationInsightsAttribute), true)[0]).MessageTypeName;
