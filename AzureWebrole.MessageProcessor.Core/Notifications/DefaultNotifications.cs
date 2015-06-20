@@ -12,6 +12,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
         public Func<MessageCompletedNotification, Task> OnMessageCompleted { get; set; }
         public Func<HandlerNotFoundNotification, Task> OnHandlerNotFoundNotification { get; set; }
         public Func<IdleRunningNotification, Task> OnIdleNotification { get; set; }
+        public Func<MessageStartedNotification, Task> OnMessageStarted { get; set; }
 
         public Task MovingMessageToDeadLetterAsync(MovingToDeadLetterNotification moveToDeadLetterEvent)
         {
@@ -39,6 +40,14 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
         {
             if (OnIdleNotification != null)
                 return OnIdleNotification(idleRunningNotification);
+            return Task.FromResult(0);
+        }
+
+
+        public Task MessageStartedAsync(MessageStartedNotification messageStartedNotification)
+        {
+            if (OnMessageStarted != null)
+                return OnMessageStarted(messageStartedNotification);
             return Task.FromResult(0);
         }
     }

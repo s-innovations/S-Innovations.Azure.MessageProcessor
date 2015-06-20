@@ -14,5 +14,7 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 
         Task HandlerWasNotFoundAsync(HandlerNotFoundNotification handlerNotFoundNotification);
         Task RunningIdleAsync(IdleRunningNotification idleRunningNotification);
+
+        Task MessageStartedAsync(MessageStartedNotification messageStartedNotification);
     }
 }

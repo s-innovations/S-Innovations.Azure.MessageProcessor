@@ -1,4 +1,5 @@
-﻿using SInnovations.Azure.MessageProcessor.Core.Notifications;
+﻿using SInnovations.Azure.MessageProcessor.Core.Logging;
+using SInnovations.Azure.MessageProcessor.Core.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,49 +10,63 @@ using System.Threading.Tasks;
 
 namespace SInnovations.Azure.MessageProcessor.Core
 {
+
     public interface IMessageProcessorClient : IDisposable
     {
         Task RestartProcessorAsync();
+        Task StartProcessorAsync();
+        void SignalRestartOnNextAllCompletedMessage();
+
     }
+
     public class MessageProcessorClient<MessageType> : IMessageProcessorClient
     {
+        private static ILog Logger = LogProvider.GetCurrentClassLogger();
+        private ManualResetEvent _completeBlocker = new ManualResetEvent(false);
+        private bool _resetOnNextIdle = false;
 
         private readonly MessageProcessorClientOptions<MessageType> _options;
+        private Task _runnerTask;
+        private TaskCompletionSource<int> _startingCompletionSource;
+
 
         public MessageProcessorClient(MessageProcessorClientOptions<MessageType> options)
         {
-            // _provider = provider;
-            //  _resolverProvider = resolverProvider;
             _options = options;
-
         }
-        private ManualResetEvent CompletedEvent = new ManualResetEvent(false);
 
-        private Task Runner;
-        private TaskCompletionSource<int> source;
 
+
+
+        #region Listening Mode
         public Task StartProcessorAsync()
         {
-            Trace.WriteLine("Starting MessageProcessorClient");
-            source = new TaskCompletionSource<int>();
+            Logger.Info("Starting Message Processor Client");
 
-           
-            Runner = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
-            return source.Task;
+            _startingCompletionSource = new TaskCompletionSource<int>();
+            _runnerTask = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
+            return _startingCompletionSource.Task;
 
         }
+
         public Task RestartProcessorAsync()
         {
-            CompletedEvent.Set();
-            CompletedEvent.Reset();
-            
+            Logger.Info("Restarting Message Processor Client");
+
+            _completeBlocker.Set();
+            _completeBlocker.Reset();
+
             return StartProcessorAsync();
         }
-        private bool resetOnNextIdle = false;
+
+
         public void SignalRestartOnNextAllCompletedMessage()
         {
-            resetOnNextIdle = true;
+            _resetOnNextIdle = true;
         }
+        #endregion Listening Mode
+
+        #region Sending Mode
         public void AddMessage<T>(T Message) where T : BaseMessage
         {
             _options.Provider.SendMessageAsync<T>(Message);
@@ -60,6 +75,8 @@ namespace SInnovations.Azure.MessageProcessor.Core
         {
             _options.Provider.SendMessagesAsync(Messages);
         }
+        #endregion Sending Mode
+
         private void StartSubscriptionClient()
         {
             try
@@ -67,21 +84,22 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
                 _options.Provider.StartListening(OnMessageAsync);
                 _lastMessageRecieved = DateTimeOffset.UtcNow;
+
                 SetIdleCheckTimer();
 
-                if (source != null)
+                if (_startingCompletionSource != null)
                 {
-                    source.SetResult(0);
-                    source = null;
+                    _startingCompletionSource.SetResult(0);
+                    _startingCompletionSource = null;
                 }
-                CompletedEvent.WaitOne();
+                _completeBlocker.WaitOne();
 
                 _options.Provider.StopListeningAsync().Wait();
-     
+
             }
             catch (Exception ex)
             {
-                source.SetException(ex);
+                _startingCompletionSource.SetException(ex);
 
             }
         }
@@ -102,12 +120,12 @@ namespace SInnovations.Azure.MessageProcessor.Core
                 {
                     var notice = new IdleRunningNotification(this) { IdleTime = DateTimeOffset.UtcNow.Subtract(_lastMessageRecieved) };
                     _options.Notifications.RunningIdleAsync(notice).Wait();
-                                  
+
                 }
             }
             finally
             {
-                if(!restart)
+                if (!restart)
                     SetIdleCheckTimer();
 
             }
@@ -134,78 +152,93 @@ namespace SInnovations.Azure.MessageProcessor.Core
             var enqued = await _options.Provider.GetEnqueuedTimeUtcAsync(message);
             var transmitTime = DateTime.UtcNow.Subtract(enqued);
 
-       
-            Stopwatch sw = Stopwatch.StartNew();
 
-            Trace.WriteLine(string.Format("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
+            Stopwatch sw = Stopwatch.StartNew();
 
 
 
             using (var resolver = _options.ResolverProvider())
             {
-
-                if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
-                {
-                    Trace.TraceInformation("Moving message : {0} to deadletter", message);
-                    var moveToDeadLetterEvent = new MovingToDeadLetterNotification(resolver) { Message = baseMessage };
-
-                    if (_options.Notifications != null)
-                        await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
-
-                    if (!moveToDeadLetterEvent.Cancel)
-                    {
-                        await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
-                        return;
-                    }
-                }
                 Interlocked.Increment(ref _isWorking);
 
                 try
                 {
-                    bool loop = true;
+
+                    if (_options.Notifications != null)
+                        await _options.Notifications.MessageStartedAsync(new MessageStartedNotification(resolver)
+                        {
+                            Elapsed = transmitTime,
+                            Message = baseMessage,
+                            WorkingCount = _isWorking,
+                        });
+
+                    Logger.DebugFormat("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
+
+                    if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
+                    {
+
+                        var moveToDeadLetterEvent = new MovingToDeadLetterNotification(resolver) { Message = baseMessage };
+                        Logger.DebugFormat("Moving message : {0} to deadletter", message);
+
+                        if (_options.Notifications != null)
+                            await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
+
+                        if (!moveToDeadLetterEvent.Cancel)
+                        {
+                            await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
+                            return;
+                        }
+                    }
+
 
                     var processingTask = ProcessMessageAsync(baseMessage, resolver);
 
+                    //Loop until the task is completed;
+                    bool loop = true;
                     var task = processingTask.ContinueWith((t) => { loop = false; });
 
+                    //Maximum time before throwing timeout expection.
                     var timeout = _options.HandlerTimeOut ?? DefaultTimeOut;
+                    //Alternative it can be message based;
                     if (_options.MessageBasedTimeOutProvider != null)
                         timeout = _options.MessageBasedTimeOutProvider(baseMessage) ?? timeout;
-
 
                     var MaximumTimeTask = Task.Delay(timeout);
                     while (loop)
                     {
-                        
+
                         var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer), MaximumTimeTask);
                         if (t == MaximumTimeTask)
                             throw new TimeoutException(string.Format("The handler could not finish in given time :{0}", timeout));
-                        Trace.TraceInformation("Renewing Task<processingTask:{0}>", processingTask.Status.ToString());
+
+                        Logger.DebugFormat("Renewing Task<processingTask:{0}>", processingTask.Status.ToString());
                         try
                         {
                             await _options.Provider.RenewLockAsync(message);
-                        }catch(Exception ex)
+                        }
+                        catch (Exception ex)
                         {
-                            Trace.TraceError("Renew Lock Exception: {0}", ex);
+                            Logger.InfoException("Renew Lock Exception: {0}", ex);
                         }
                     }
 
-                    await processingTask; // Make it throw exception
+                    await processingTask.ConfigureAwait(false); // Make it throw exception
 
-                    Trace.WriteLine(string.Format("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage));
+                    Logger.DebugFormat("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
                     //Everything ok, so take it off the queue
                     await _options.Provider.CompleteMessageAsync(message);
 
                     sw.Stop();
-                    
+
 
                     if (_options.Notifications != null)
                         await _options.Notifications.MessageCompletedAsync(
-                            new MessageCompletedNotification(resolver) 
+                            new MessageCompletedNotification(resolver)
                                 {
-                                    Message = baseMessage, 
+                                    Message = baseMessage,
                                     Elapsed = sw.Elapsed,
                                     ElapsedUntilReceived = transmitTime,
+                                    WorkingCount = _isWorking
                                 });
 
                 }
@@ -213,18 +246,18 @@ namespace SInnovations.Azure.MessageProcessor.Core
                 {
                     Interlocked.Decrement(ref _isWorking);
                 }
-                if(_isWorking == 0 && resetOnNextIdle)
+                if (_isWorking == 0 && _resetOnNextIdle)
                 {
-                    CompletedEvent.Set();
+                    _completeBlocker.Set();
                 }
-                
+
             }
         }
 
         public async Task ProcessMessageAsync<T>(T message, IMessageHandlerResolver resolver) where T : BaseMessage
         {
 
-           
+
             //Voodoo to construct the right message handler type
             Type handlerType = typeof(IMessageHandler<>);
             Type[] typeArgs = { message.GetType() };
@@ -264,7 +297,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
         public void Dispose()
         {
-            CompletedEvent.Set(); //Runner shoul now complete.
+            _completeBlocker.Set(); //Runner shoul now complete.
             _options.Provider.Dispose();
 
         }
