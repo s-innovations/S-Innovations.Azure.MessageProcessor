@@ -238,9 +238,17 @@ namespace SInnovations.Azure.MessageProcessor.Core
                                 Logger.InfoException("Renew Lock Exception: {0}", ex);
                             }
                         }
+                        try
+                        {
+                            await processingTask.ConfigureAwait(false); // Make it throw exception
 
-                        await processingTask.ConfigureAwait(false); // Make it throw exception
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.WarnException("Processing Execution failed for messageid {0} : ", ex, baseMessage.MessageId);
+                            throw;
 
+                        }
                     }
                     catch (Exception ex)
                     {
