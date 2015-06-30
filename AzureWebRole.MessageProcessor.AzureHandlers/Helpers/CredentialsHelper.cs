@@ -18,7 +18,7 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Helpers
                  new CertificateCloudCredentials(message.AzureSubscriptionId,
                    await certificates.GetCertificateAsync(message.AzureSubscriptionCertificateThumbprint)) as SubscriptionCloudCredentials :
                (!string.IsNullOrWhiteSpace(message.AzureSubscriptionToken) ?
-                   new TokenCloudCredentials(message.AzureSubscriptionId) : null);
+                   new TokenCloudCredentials(message.AzureSubscriptionId, message.AzureSubscriptionToken) : null);
 
             if (cred == null)
                 throw new Exception("No Credentials Given");
