@@ -27,7 +27,7 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
         {
 
             var cred = await CredentialsHelper.GetCredentials(message,certificates);
-            
+            Trace.TraceInformation("ComputeManagementClient Credentials: {0} {1}", cred.GetType(), cred.SubscriptionId);
             using (var management = new ComputeManagementClient(cred))
             {
                 var services = await management.HostedServices.ListAsync();
