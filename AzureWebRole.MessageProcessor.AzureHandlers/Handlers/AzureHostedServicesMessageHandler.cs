@@ -26,12 +26,13 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
         public async Task HandleAsync(DeployAzureHostedServiceMessage message)
         {
 
-            var cred = await CredentialsHelper.GetCredentials(message,certificates);
+            var cred = await CredentialsHelper.GetCredentials(message, certificates);
             Trace.TraceInformation("ComputeManagementClient Credentials: {0} {1}", cred.GetType(), cred.SubscriptionId);
             using (var management = new ComputeManagementClient(cred))
             {
-                var services = await management.HostedServices.ListAsync();
 
+                var services = await management.HostedServices.ListAsync();
+                Trace.TraceInformation("Found {0} hosted services", services.HostedServices.Count);
                 if (!services.Any(s => s.ServiceName.Equals(message.HostedServiceName)))
                 {
                     await CreateHostedService(message, management);
@@ -46,8 +47,9 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
                     return;
                 }
 
-                
-                
+
+
+
                 XDocument document = null;
                 if (!string.IsNullOrWhiteSpace(message.PackageConfigurationUri))
                     document = XDocument.Load(message.PackageConfigurationUri);
@@ -57,7 +59,7 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
                 if (document == null)
                     throw new Exception("The message did not have a valid PackageConfiguration Setting, specify either uri or xml");
 
-           
+
 
 
 
@@ -69,7 +71,7 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
 
                     var deployment = service.Deployments.FirstOrDefault();
 
-                    if(deployment.ExtendedProperties.ContainsKey(KEY_PROPERTY) && deployment.ExtendedProperties[KEY_PROPERTY] == message.Key )
+                    if (deployment.ExtendedProperties.ContainsKey(KEY_PROPERTY) && deployment.ExtendedProperties[KEY_PROPERTY] == message.Key)
                     {
                         Trace.TraceInformation("The service '{0}' already had a deployment with same key. Skipped deployment.", message.HostedServiceName);
                         return;
@@ -94,9 +96,9 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
                     }
                     var waittime = (DateTime.UtcNow - starttime);
 
-                    if(waittime.TotalMinutes > message.DeploymentTimeoutInMinutes )
+                    if (waittime.TotalMinutes > message.DeploymentTimeoutInMinutes)
                     {
-                        throw new Exception("Deployment Timeout: " + string.Join(", ",production.RoleInstances.Select(i =>i.InstanceStatus)));
+                        throw new Exception("Deployment Timeout: " + string.Join(", ", production.RoleInstances.Select(i => i.InstanceStatus)));
                     }
                     if (!running)
                         await Task.Delay(5000);
@@ -121,7 +123,7 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
             if (deployParameter.ExtendedProperties == null)
                 deployParameter.ExtendedProperties = new Dictionary<string, string>();
 
-            if(!string.IsNullOrWhiteSpace(message.Key))
+            if (!string.IsNullOrWhiteSpace(message.Key))
             {
                 deployParameter.ExtendedProperties.Add(KEY_PROPERTY, message.Key);
             }
@@ -197,17 +199,17 @@ namespace SInnovations.Azure.MessageProcessor.AzureHandlers.Handlers
                 throw new Exception(exceptionMessage);
             }
 
-           var parameters =new HostedServiceCreateParameters
-            {
-                AffinityGroup = message.AffinityGroup,
-                Description = "Automatic Created Cloud Service",
-                Label = message.HostedServiceName,
-                ServiceName = message.HostedServiceName,
-              
-            };
-           if (!string.IsNullOrWhiteSpace(message.ServiceJsonExtendedProperties))
-               parameters.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.ServiceJsonExtendedProperties);
-             
+            var parameters = new HostedServiceCreateParameters
+             {
+                 AffinityGroup = message.AffinityGroup,
+                 Description = "Automatic Created Cloud Service",
+                 Label = message.HostedServiceName,
+                 ServiceName = message.HostedServiceName,
+
+             };
+            if (!string.IsNullOrWhiteSpace(message.ServiceJsonExtendedProperties))
+                parameters.ExtendedProperties = JsonConvert.DeserializeObject<Dictionary<string, string>>(message.ServiceJsonExtendedProperties);
+
             var operation = await management.HostedServices.CreateAsync(parameters);
 
         }
