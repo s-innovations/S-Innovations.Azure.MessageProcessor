@@ -98,6 +98,6 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             set;
         }
 
-     
+        public Func<QueueDescription,QueueDescription> SessionQueueDescriptionProvider { get; set; }
     }
 }
