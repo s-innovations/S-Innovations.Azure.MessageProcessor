@@ -26,11 +26,13 @@ namespace SInnovations.Azure.MessageProcessor.Core.Notifications
         }
         public static async Task<EventTelemetry> CreateEventTelemetryAsync(this MessageCompletedNotification notice, string eventName = "MessageCompleted", bool inheritLookup = true)
         {
-            var t = new EventTelemetry(eventName); 
+            
 
             var messageType = notice.Message.GetType().Name;
             if ((Attribute.IsDefined(notice.Message.GetType(), typeof(ApplicationInsightsAttribute), inheritLookup)))
                 messageType = ((ApplicationInsightsAttribute)notice.Message.GetType().GetCustomAttributes(typeof(ApplicationInsightsAttribute), inheritLookup)[0]).MessageTypeName;
+
+            var t = new EventTelemetry(string.Format("{0} - {1}",eventName,messageType)); 
 
             t.Properties.Add("MessageId", notice.Message.MessageId);
             t.Properties.Add("MessageType", messageType);
