@@ -124,7 +124,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
 
-        private MessageClientEntity Client;
+        private ClientEntity Client;
         private readonly Lazy<TopicClient> LazyTopicClient;
         private readonly Lazy<QueueClient> LazyQueueClient;
         private readonly ScaledTopicClient ScaledTopicClient;
