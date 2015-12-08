@@ -25,5 +25,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
         public TimeSpan? HandlerTimeOut { get; set; }
 
         public Func<BaseMessage, TimeSpan?> MessageBasedTimeOutProvider { get; set; }
+
+     
     }
 }

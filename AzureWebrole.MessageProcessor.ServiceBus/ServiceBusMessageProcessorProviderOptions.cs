@@ -12,7 +12,10 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
     public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<BrokeredMessage>
     {
-
+        public ServiceBusMessageProcessorProviderOptions()
+        {
+            MaxMessageRetries = 3;
+        }
 
         public string ConnectionString { get; set; }
 
@@ -58,6 +61,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         /// </summary>
         public Func<BaseMessage, string> CorrelationIdProvider { get; set; }
 
+        public Func<BaseMessage, DateTime?> ScheduledEnqueueTimeUtcProvider { get ;set; }
+
         /// <summary>
         /// Set the Scale Out Count. Meaning that it will create X subscriptions on topics and forward them to common Queue.
         /// This is good if the system is pushing many messages onto the bus.
@@ -99,5 +104,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         }
 
         public Func<QueueDescription,QueueDescription> SessionQueueDescriptionProvider { get; set; }
+
+
+     
     }
 }

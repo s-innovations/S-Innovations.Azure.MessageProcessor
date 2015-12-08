@@ -61,6 +61,7 @@
     <Compile Include="MessageProcessorClient`1.cs" />
     <Compile Include="ModelBasedBaseMessage.cs" />
     <Compile Include="Notifications\BaseNotificationMessage.cs" />
+    <Compile Include="Notifications\MessageStartedNotification.cs" />
     <Compile Include="Notifications\DefaultNotifications.cs" />
     <Compile Include="Notifications\HandlerNotFoundNotification.cs" />
     <Compile Include="Notifications\IdleRunningNotification.cs" />
@@ -68,6 +69,7 @@
     <Compile Include="Notifications\MessageCompletedNotification.cs" />
     <Compile Include="Notifications\MovingToDeadLetterNotification.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Schedules\MessageScheduleAttribute.cs" />
     <Compile Include="Serialization\IModelRepositoryProvider.cs" />
   </ItemGroup>
   <ItemGroup>

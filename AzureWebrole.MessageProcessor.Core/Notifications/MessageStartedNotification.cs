@@ -6,13 +6,10 @@ using System.Threading.Tasks;
 
 namespace SInnovations.Azure.MessageProcessor.Core.Notifications
 {
-    public class MessageCompletedNotification : BaseNotificationMessage
+    public class MessageStartedNotification : BaseNotificationMessage
     {
-        public MessageCompletedNotification(IMessageHandlerResolver resolver) : base(resolver) { }
+        public MessageStartedNotification(IMessageHandlerResolver resolver) : base(resolver) { }
         public TimeSpan Elapsed { get; set; }
-        public TimeSpan ElapsedUntilReceived { get; set; }
-
         public int WorkingCount { get; set; }
     }
-  
 }

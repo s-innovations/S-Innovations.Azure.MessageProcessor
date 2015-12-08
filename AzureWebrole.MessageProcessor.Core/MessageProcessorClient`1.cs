@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reflection;
+using SInnovations.Azure.MessageProcessor.Core.Schedules;
 
 namespace SInnovations.Azure.MessageProcessor.Core
 {
@@ -180,117 +182,157 @@ namespace SInnovations.Azure.MessageProcessor.Core
                         Logger.WarnException("Notification MesssageStarted Failed for messageid {0} : ", ex,baseMessage.MessageId);
                     }
 
+                  
                     Logger.DebugFormat("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
 
-                    if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
+                    if (!await MoveToDeadLetterHandlingAsync(message, baseMessage, resolver))
                     {
-                        try
-                        {
-                            var moveToDeadLetterEvent = new MovingToDeadLetterNotification(resolver) { Message = baseMessage };
-                            Logger.DebugFormat("Moving message : {0} to deadletter", message);
+                        await ProccessMessageHandlingAsync(message, baseMessage, resolver);
 
-                            if (_options.Notifications != null)
-                                await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
+                        Logger.DebugFormat("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
 
-                            if (!moveToDeadLetterEvent.Cancel)
-                            {
-                                await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
-                                return;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.WarnException("Moving message to deadletter failed for messageid {0} : ", ex, baseMessage.MessageId);
-                            throw;
-                        }
+                        await FinalizeMessageAsync(message, baseMessage, transmitTime, sw, resolver);
                     }
 
+                    await ReEnQueueMessageAsyncIfNeeded(baseMessage, resolver);
 
-                    try
-                    {
-                        var processingTask = ProcessMessageAsync(baseMessage, resolver);
-
-                        //Loop until the task is completed;
-                        bool loop = true;
-                        var task = processingTask.ContinueWith((t) => { loop = false; });
-
-                        //Maximum time before throwing timeout expection.
-                        var timeout = _options.HandlerTimeOut ?? DefaultTimeOut;
-                        //Alternative it can be message based;
-                        if (_options.MessageBasedTimeOutProvider != null)
-                            timeout = _options.MessageBasedTimeOutProvider(baseMessage) ?? timeout;
-
-                        var MaximumTimeTask = Task.Delay(timeout);
-                        while (loop)
-                        {
-
-                            var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer), MaximumTimeTask);
-                            if (t == MaximumTimeTask)
-                                throw new TimeoutException(string.Format("The handler could not finish in given time :{0}", timeout));
-
-                            Logger.DebugFormat("Renewing Task<processingTask:{0}>", processingTask.Status.ToString());
-                            try
-                            {
-                                await _options.Provider.RenewLockAsync(message);
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.InfoException("Renew Lock Exception: {0}", ex);
-                            }
-                        }
-                        try
-                        {
-                            await processingTask.ConfigureAwait(false); // Make it throw exception
-
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.WarnException("Processing Execution failed for messageid {0} : ", ex, baseMessage.MessageId);
-                            throw;
-
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.WarnException("Main Execution Loop failed for messageid {0} : ", ex, baseMessage.MessageId);
-                        throw;
-                    }
-
-
-                    Logger.DebugFormat("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
-                    try
-                    {
-                        //Everything ok, so take it off the queue
-                        await _options.Provider.CompleteMessageAsync(message);
-
-                        sw.Stop();
-
-
-                        if (_options.Notifications != null)
-                            await _options.Notifications.MessageCompletedAsync(
-                                new MessageCompletedNotification(resolver)
-                                    {
-                                        Message = baseMessage,
-                                        Elapsed = sw.Elapsed,
-                                        ElapsedUntilReceived = transmitTime,
-                                        WorkingCount = _isWorking
-                                    });
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.WarnException("Notification MessageCompleted Failed for messageid {0} : ", ex, baseMessage.MessageId);
-                    }
 
                 }
                 finally
                 {
                     Interlocked.Decrement(ref _isWorking);
                 }
+
                 if (_isWorking == 0 && _resetOnNextIdle)
                 {
                     _completeBlocker.Set();
                 }
 
+            }
+        }
+
+        private async Task<bool> MoveToDeadLetterHandlingAsync(MessageType message, BaseMessage baseMessage, IMessageHandlerResolver resolver)
+        {
+            if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
+            {
+                try
+                {
+                    var moveToDeadLetterEvent = new MovingToDeadLetterNotification(resolver) { Message = baseMessage };
+                    Logger.DebugFormat("Moving message : {0} to deadletter", message);
+
+                    if (_options.Notifications != null)
+                        await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
+
+                    if (!moveToDeadLetterEvent.Cancel)
+                    {
+                        await _options.Provider.MoveToDeadLetterAsync(message, "UnableToProcess", "Failed to process in reasonable attempts");
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.WarnException("Moving message to deadletter failed for messageid {0} : ", ex, baseMessage.MessageId);
+                    throw;
+                }
+            }
+            return false;
+        }
+
+        private async Task ProccessMessageHandlingAsync(MessageType message, BaseMessage baseMessage, IMessageHandlerResolver resolver)
+        {
+            try
+            {
+                var processingTask = ProcessMessageAsync(baseMessage, resolver);
+
+                //Loop until the task is completed;
+                bool loop = true;
+                var task = processingTask.ContinueWith((t) => { loop = false; });
+
+                //Maximum time before throwing timeout expection.
+                var timeout = _options.HandlerTimeOut ?? DefaultTimeOut;
+                //Alternative it can be message based;
+                if (_options.MessageBasedTimeOutProvider != null)
+                    timeout = _options.MessageBasedTimeOutProvider(baseMessage) ?? timeout;
+
+                var MaximumTimeTask = Task.Delay(timeout);
+                while (loop)
+                {
+
+                    var t = await Task.WhenAny(task, Task.Delay(_options.AutoRenewLockTimerDuration ?? DefaultLockRenewTimer), MaximumTimeTask);
+                    if (t == MaximumTimeTask)
+                        throw new TimeoutException(string.Format("The handler could not finish in given time :{0}", timeout));
+
+                    Logger.DebugFormat("Renewing Task<processingTask:{0}>", processingTask.Status.ToString());
+                    try
+                    {
+                        await _options.Provider.RenewLockAsync(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.InfoException("Renew Lock Exception: {0}", ex);
+                    }
+                }
+                try
+                {
+                    await processingTask.ConfigureAwait(false); // Make it throw exception
+
+                }
+                catch (Exception ex)
+                {
+                    Logger.WarnException("Processing Execution failed for messageid {0} : ", ex, baseMessage.MessageId);
+                    throw;
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.WarnException("Main Execution Loop failed for messageid {0} : ", ex, baseMessage.MessageId);
+                throw;
+            }
+        }
+
+        private async Task FinalizeMessageAsync(MessageType message, BaseMessage baseMessage, TimeSpan transmitTime, Stopwatch sw, IMessageHandlerResolver resolver)
+        {
+            try
+            {
+                //Everything ok, so take it off the queue
+                await _options.Provider.CompleteMessageAsync(message);
+
+                sw.Stop();
+
+
+                if (_options.Notifications != null)
+                    await _options.Notifications.MessageCompletedAsync(
+                        new MessageCompletedNotification(resolver)
+                        {
+                            Message = baseMessage,
+                            Elapsed = sw.Elapsed,
+                            ElapsedUntilReceived = transmitTime,
+                            WorkingCount = _isWorking
+                        });
+            }
+            catch (Exception ex)
+            {
+                Logger.WarnException("Notification MessageCompleted Failed for messageid {0} : ", ex, baseMessage.MessageId);
+            }
+        }
+
+        private async Task ReEnQueueMessageAsyncIfNeeded(BaseMessage baseMessage,IMessageHandlerResolver resolver)
+        {
+            try
+            {
+
+                if (Attribute.IsDefined(baseMessage.GetType(), typeof(MessageScheduleAttribute)))
+                {
+                    var sender = resolver.GetHandler(typeof(IMessageProcessorClientProvider<MessageType>))
+                        as IMessageProcessorClientProvider<MessageType>;
+                    await sender.SendMessageAsync(baseMessage);
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.WarnException("Failed to resend timed message {0} : ", ex, baseMessage.MessageId);
             }
         }
 

@@ -1,123 +1,23 @@
 ﻿using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
+using SInnovations.Azure.MessageProcessor.Core;
+using SInnovations.Azure.MessageProcessor.Core.Logging;
+using SInnovations.Azure.MessageProcessor.Core.Schedules;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Security.Cryptography;
+using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using SInnovations.Azure.MessageProcessor.Core;
-using SInnovations.Azure.MessageProcessor.Core.Serialization;
-using SInnovations.Azure.MessageProcessor.Core.Logging;
-using System.Collections.Concurrent;
 
 
 namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
-    public interface ServiceBusMessageProcessorClientProvider : IMessageProcessorClientProvider<BrokeredMessage>
-    {
-
-    }
-    public class ScaledTopicClient
-    {
-        private const string DEFAULT_COORELATION_ID = "__DEFAULT__";
-        //private readonly ServiceBusMessageProcessorProviderOptions options;
-        private Random R;
-        private int _scaleCount = 1;
-        private readonly Dictionary<string, Lazy<TopicClient>[]> LazyTopicClients;
-
-        //private readonly NamespaceManager namespaceManager;
-        public ScaledTopicClient(ServiceBusMessageProcessorProviderOptions options)
-        {
-            //   this.options = options;
-            this.R = new Random();
-            this._scaleCount = options.TopicScaleCount.Value;
-            LazyTopicClients = new Dictionary<string, Lazy<TopicClient>[]>();
-            if (options.ConnectionStringProvider != null)
-            {
-                foreach (var mapping in options.ConnectionStringProvider)
-                {
-                    LazyTopicClients.Add(mapping.Key,
-                        CreateTopicClientsForConnectionString(options.TopicScaleCount.Value, options.TopicDescription.Path, mapping.Value));
-                }
-            }
 
 
-            LazyTopicClients.Add(DEFAULT_COORELATION_ID, CreateTopicClientsForConnectionString(
-                   options.TopicScaleCount.Value, options.TopicDescription.Path, options.ConnectionString));
-
-
-        }
-
-        private Lazy<TopicClient>[] CreateTopicClientsForConnectionString(int count, string prefix, string conn)
-        {
-            var list = new List<Lazy<TopicClient>>(count);
-            var namespaceManager = NamespaceManager.CreateFromConnectionString(conn);
-
-            for (int i = 0, ii = count; i < ii; ++i)
-            {
-                var name = prefix + i.ToString("D3");
-                list.Add(new Lazy<TopicClient>(() => CreateTopicClient(conn, name)));
-            }
-            return list.ToArray();
-        }
-        private TopicClient CreateTopicClient(string conn, string topicname)
-        {
-
-
-            Trace.WriteLine(string.Format("Creating Topic Client: {0}, {1}", conn, topicname));
-
-            return TopicClient.CreateFromConnectionString(conn, topicname);
-        }
-
-        internal Task SendAsync(BrokeredMessage message)
-        {
-
-            int r = R.Next(_scaleCount);
-            TopicClient client = GetClient(message.CorrelationId, r);
-
-            Trace.WriteLine(string.Format("Posting Message onto Topic {1} '{0}'",
-                client.Path, r));
-
-            return client.SendAsync(message);
-
-        }
-
-        private TopicClient GetClient(string coorid, int r)
-        {
-
-
-            var coorelationId = coorid ?? DEFAULT_COORELATION_ID;
-
-            return (this.LazyTopicClients.ContainsKey(coorelationId) ?
-                 this.LazyTopicClients[coorelationId][r] :
-                 this.LazyTopicClients[DEFAULT_COORELATION_ID][r]).Value;
-        }
-        internal Task SendBatchAsync(IEnumerable<BrokeredMessage> messages)
-        {
-            var postBlock = new ActionBlock<IGrouping<string, BrokeredMessage>>((group) =>
-            {
-
-                var r = R.Next(_scaleCount);
-                TopicClient client = GetClient(group.Key, r);
-
-                Trace.WriteLine(string.Format("Posting Messages onto Topic {1} '{0}'", client.Path, r));
-
-                return client.SendBatchAsync(messages);
-            });
-
-
-            foreach (var group in messages.GroupBy(m => m.CorrelationId ?? DEFAULT_COORELATION_ID))
-                postBlock.Post(group);
-
-            postBlock.Complete();
-            return postBlock.Completion;
-
-        }
-    }
     public class ServiceBusMessageProcessorProvider : ServiceBusMessageProcessorClientProvider
     {
         static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
@@ -214,12 +114,12 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 }
             };
 
-            Trace.TraceInformation("Creating {0} Topics", options.TopicScaleCount.Value);
+            Logger.InfoFormat("Creating {0} Topics", options.TopicScaleCount.Value);
 
             for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
             {
 
-                Trace.TraceInformation("With '{0}' as filters.", string.Join(", ", options.CorrelationToQueueMapping.Keys));
+                Logger.InfoFormat("With '{0}' as filters.", string.Join(", ", options.CorrelationToQueueMapping.Keys));
 
                 foreach (var group in options.CorrelationToQueueMapping
                     .Select(mapping => new
@@ -228,7 +128,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                         NameSpaceManager = GetNamespaceManagerForCorrelationId(mapping.Key)
                     }).GroupBy(mapping => mapping.NameSpaceManager.Address.AbsoluteUri))
                 {
-                    Trace.TraceInformation("With {0} ConnectionString Groups", group.Count());
+                    Logger.InfoFormat("With {0} ConnectionString Groups", group.Count());
                     foreach (var mapping in group)
                     {
 
@@ -246,7 +146,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                         if (topic != null)
                             forwardPath = topic.Path;
 
-                        Trace.TraceInformation("Found Forward Path {0}", forwardPath);
+                        Logger.InfoFormat("Found Forward Path {0}", forwardPath);
 
                         options.SubscriptionDescription.Name = originalSubscriptionName + "2" + forwardPath;
                         options.SubscriptionDescription.TopicPath = options.TopicDescription.Path;
@@ -255,12 +155,12 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
                         if (!await namespaceManager.SubscriptionExistsAsync(options.TopicDescription.Path, options.SubscriptionDescription.Name))
                         {
-                            Trace.TraceInformation("Creating Subscription {0}", options.SubscriptionDescription.Name);
+                            Logger.InfoFormat("Creating Subscription {0}", options.SubscriptionDescription.Name);
                             await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription, new CorrelationFilter(mapping.Map.Key));
                         }
                         else
                         {
-                            Trace.TraceInformation("Subscription {0} Already Created", options.SubscriptionDescription.Name);
+                            Logger.InfoFormat("Subscription {0} Already Created", options.SubscriptionDescription.Name);
                         }
 
                     }
@@ -320,7 +220,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed To setup Topic: {0} with {1}", this.options.TopicDescription.Path, ex.ToString());
+                Logger.ErrorFormat("Failed To setup Topic: {0} with {1}", this.options.TopicDescription.Path, ex.ToString());
                 throw;
             }
             try
@@ -332,7 +232,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed To setup Topic: {0} with {1}", this.options.SubscriptionDescription.TopicPath, ex.ToString());
+                Logger.ErrorFormat("Failed To setup Topic: {0} with {1}", this.options.SubscriptionDescription.TopicPath, ex.ToString());
                 throw;
             }
 
@@ -364,7 +264,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed To setup Queue: {0} with {1}", this.options.QueueDescription.Path, ex.ToString());
+                Logger.ErrorFormat("Failed To setup Queue: {0} with {1}", this.options.QueueDescription.Path, ex.ToString());
                 throw;
             }
 
@@ -379,7 +279,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed To setup subscription: {0} {2} with {1}",
+                Logger.ErrorFormat("Failed To setup subscription: {0} {2} with {1}",
                     this.options.SubscriptionDescription.TopicPath, ex.ToString(), this.options.SubscriptionDescription.Name);
                 throw;
             }
@@ -400,7 +300,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Failed To setup subscription client: {0} {2} with {1}",
+                Logger.ErrorFormat("Failed To setup subscription client: {0} {2} with {1}",
                     this.options.SubscriptionDescription.TopicPath, ex.ToString(),
                     this.options.SubscriptionDescription.Name);
                 throw;
@@ -422,7 +322,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             {
                 //Should never get here as a messagebodytype should
                 //always be set BEFORE putting the message on the queue
-                Trace.TraceError("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString());
+                Logger.ErrorFormat("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString());
                 // m.DeadLetter();
                 throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString()));
             }
@@ -499,18 +399,39 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             if (options.CorrelationIdProvider != null)
                 brokeredMessage.CorrelationId = options.CorrelationIdProvider(message);
 
+            DateTime? timeToSend = null;
+            if (options.ScheduledEnqueueTimeUtcProvider != null)
+            {
+
+                timeToSend = options.ScheduledEnqueueTimeUtcProvider(message);
+
+            }
+
+
+            if (Attribute.IsDefined(message.GetType(), typeof(MessageScheduleAttribute)))
+            {
+                var att = message.GetType().GetCustomAttribute<MessageScheduleAttribute>();
+                timeToSend = att.GetNextWindowTime();
+            }
+
+            if (timeToSend.HasValue)
+            {
+                brokeredMessage.ScheduledEnqueueTimeUtc = timeToSend.Value;
+                brokeredMessage.MessageId = HashString(typename + brokeredMessage.ScheduledEnqueueTimeUtc.ToString("yyyy-M-ddThh:mm:ss.ff"));
+            }
+
             return brokeredMessage;
         }
-        //private string makeGuidFromString(string input)
-        //{
-        //    var provider = new MD5CryptoServiceProvider();
-        //    var inputBytes = Encoding.UTF8.GetBytes(input);
+        private string HashString(string src)
+        {
+            byte[] stringbytes = Encoding.UTF8.GetBytes(src);
+            byte[] hashedBytes = new System.Security.Cryptography
+                .SHA1CryptoServiceProvider()
+                .ComputeHash(stringbytes);
+            Array.Resize(ref hashedBytes, 16);
+            return new Guid(hashedBytes).ToString();
+        }
 
-        //    var hashBytes = provider.ComputeHash(inputBytes);
-        //    var hashGuid = new Guid(hashBytes);
-
-        //    return hashGuid.ToString();
-        //}
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
             Logger.Info("ExceptionReceived");
@@ -524,9 +445,6 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             if (Client != null)
                 Client.Close();
         }
-
-
-
 
         public IMessageProcessorProviderOptions<BrokeredMessage> Options
         {

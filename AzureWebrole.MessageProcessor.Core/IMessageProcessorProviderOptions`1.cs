@@ -13,5 +13,6 @@ namespace SInnovations.Azure.MessageProcessor.Core
         TimeSpan? AutoRenewLockTime { get; }
 
         IModelRepositoryProvider RepositoryProvider { get; }
+
     }
 }
