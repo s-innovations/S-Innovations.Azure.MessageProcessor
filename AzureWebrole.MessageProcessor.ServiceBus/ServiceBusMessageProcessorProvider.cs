@@ -364,6 +364,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                             case "SessionId":
                                 msg.SessionId = (string)value;
                                 break;
+                            case "ScheduledEnqueueTimeUtc":
+                                msg.ScheduledEnqueueTimeUtc = (DateTime)value;
+                                break;
                             default:
                                 msg.Properties.Add(name, value);
                                 break;
@@ -382,7 +385,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             var brokeredMessage = new BrokeredMessage(message);
             var typename = message.GetType().AssemblyQualifiedName;
             brokeredMessage.Properties["messageType"] = typename;
-
+           
             try
             {
                 foreach (var promotor in promoters.GetOrAdd(message.GetType(), Factory))

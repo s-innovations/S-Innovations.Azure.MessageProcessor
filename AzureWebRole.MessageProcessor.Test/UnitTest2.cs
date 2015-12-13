@@ -33,7 +33,7 @@ namespace SInnovations.Azure.MessageProcessor.Test
     [TestClass]
     public class UnitTest2
     {
-        [TestMethod]
+      //  [TestMethod]
         public async Task TestMethod1()
         {
             var attr = typeof(ScheduleMessageTst).GetCustomAttribute<MessageScheduleAttribute>();
