@@ -62,6 +62,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         public Func<BaseMessage, string> CorrelationIdProvider { get; set; }
 
         public Func<BaseMessage, DateTime?> ScheduledEnqueueTimeUtcProvider { get ;set; }
+        public Func<BaseMessage, string> ScheduledEnqueueTimeHashProvider { get; set; }
 
         /// <summary>
         /// Set the Scale Out Count. Meaning that it will create X subscriptions on topics and forward them to common Queue.
@@ -106,6 +107,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         public Func<QueueDescription,QueueDescription> SessionQueueDescriptionProvider { get; set; }
 
 
-     
+
+
+       
     }
 }

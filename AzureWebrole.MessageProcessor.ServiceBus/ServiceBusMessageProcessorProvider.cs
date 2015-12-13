@@ -414,13 +414,18 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             if (Attribute.IsDefined(message.GetType(), typeof(MessageScheduleAttribute)))
             {
                 var att = message.GetType().GetCustomAttribute<MessageScheduleAttribute>();
-                timeToSend = att.GetNextWindowTime();
+                if(!string.IsNullOrEmpty(att.TimeBetweenSchedules)){
+                    timeToSend = att.GetNextWindowTime();
+                }
             }
 
             if (timeToSend.HasValue)
             {
+                var hashPart = options.ScheduledEnqueueTimeHashProvider != null ? 
+                    options.ScheduledEnqueueTimeHashProvider(message) ?? "" : "";
+
                 brokeredMessage.ScheduledEnqueueTimeUtc = timeToSend.Value;
-                brokeredMessage.MessageId = HashString(typename + brokeredMessage.ScheduledEnqueueTimeUtc.ToString("yyyy-M-ddThh:mm:ss.ff"));
+                brokeredMessage.MessageId = HashString(hashPart + typename + brokeredMessage.ScheduledEnqueueTimeUtc.ToString("yyyy-M-ddThh:mm:ss.ff"));
             }
 
             return brokeredMessage;
