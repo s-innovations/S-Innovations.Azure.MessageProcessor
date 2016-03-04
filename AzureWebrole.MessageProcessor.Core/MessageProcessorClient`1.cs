@@ -18,6 +18,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
         Task RestartProcessorAsync();
         Task StartProcessorAsync();
         void SignalRestartOnNextAllCompletedMessage();
+        Task StopProcessorAsync();
 
     }
 
@@ -30,6 +31,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
         private readonly MessageProcessorClientOptions<MessageType> _options;
         private Task _runnerTask;
         private TaskCompletionSource<int> _startingCompletionSource;
+        private TaskCompletionSource<int> _stoppedListeningCompletionSource;
 
 
         public MessageProcessorClient(MessageProcessorClientOptions<MessageType> options)
@@ -51,16 +53,26 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
         }
 
-        public Task RestartProcessorAsync()
+        public async Task RestartProcessorAsync()
         {
             Logger.Info("Restarting Message Processor Client");
+
+            await StopProcessorAsync();
+            await StartProcessorAsync();
+        }
+
+        public Task StopProcessorAsync()
+        {
+            Logger.Info("Stopping Message Processor Client");
+
+            _stoppedListeningCompletionSource = new TaskCompletionSource<int>();
 
             _completeBlocker.Set();
             _completeBlocker.Reset();
 
-            return StartProcessorAsync();
+            return _stoppedListeningCompletionSource.Task;
+         
         }
-
 
         public void SignalRestartOnNextAllCompletedMessage()
         {
@@ -103,6 +115,13 @@ namespace SInnovations.Azure.MessageProcessor.Core
             {
                 _startingCompletionSource.SetException(ex);
 
+            }
+            finally{
+                if (_stoppedListeningCompletionSource != null)
+                {
+                    _stoppedListeningCompletionSource.SetResult(0);
+                    _stoppedListeningCompletionSource = null;
+                }
             }
         }
 
