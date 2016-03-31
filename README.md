@@ -1,5 +1,5 @@
 
-Azure Webrole Message Processor
+S-Innovations Message Processor
 ============================
 ![](https://sinnovations.visualstudio.com/DefaultCollection/_apis/public/build/definitions/40c16cc5-bf99-47d4-a814-56c38cc0ea24/7/badge)
 

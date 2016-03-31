@@ -6,9 +6,11 @@
     <title>$title$</title>
     <authors>$author$</authors>
     <owners>$author$</owners>
+    <licenseUrl>https://www.s-innovations.net</licenseUrl>
+    <projectUrl>https://github.com/s-innovations/S-Innovations.Azure.MessageProcessor</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>   
-    <copyright>Copyright 2016</copyright>
-    <tags>S-Innovations Azure MessageProcessor</tags>
+    <description>$description$</description>
+    <copyright>Copyright 2015</copyright>
+    <tags>Azure MessageProcessor S-Innovations</tags>
   </metadata>
 </package>
