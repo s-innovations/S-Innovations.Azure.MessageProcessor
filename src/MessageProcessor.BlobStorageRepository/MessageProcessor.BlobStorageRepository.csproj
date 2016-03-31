@@ -78,15 +78,15 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+    <None Include="MessageProcessor.BlobStorageRepository.nuspec" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\MessageProcessor.Core\MessageProcessor.Core.csproj">
       <Project>{5f5caeba-6724-4a10-a38a-80b0489e579c}</Project>
       <Name>MessageProcessor.Core</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="packages.config" />
-    <None Include="MessageProcessor.BlobStorageRepository.nuspec" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
