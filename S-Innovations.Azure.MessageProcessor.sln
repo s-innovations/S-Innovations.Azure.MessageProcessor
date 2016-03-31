@@ -3,14 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Core", "AzureWebrole.MessageProcessor.Core\MessageProcessor.Core.csproj", "{5F5CAEBA-6724-4A10-A38A-80B0489E579C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.ServiceBus", "AzureWebrole.MessageProcessor.ServiceBus\MessageProcessor.ServiceBus.csproj", "{751072EE-964F-4A83-8B93-FB758FC9353D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Ninject", "AzureWebRole.MessageProcessor.Ninject\MessageProcessor.Ninject.csproj", "{6E872116-72F1-4389-A3A0-43537BC4F376}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Unity", "AzureWebRole.MessageProcessor.Unity\MessageProcessor.Unity.csproj", "{3FB9015D-FC7F-4051-8711-F1D1F5F2A6F4}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D19EBBEB-3F2C-4FAD-8142-3E11A4DA9488}"
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
@@ -18,13 +10,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D19EBB
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Test", "AzureWebRole.MessageProcessor.Test\MessageProcessor.Test.csproj", "{3B1FE177-4D29-491D-805D-9971E79A3BFD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Core", "src\MessageProcessor.Core\MessageProcessor.Core.csproj", "{5F5CAEBA-6724-4A10-A38A-80B0489E579C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.AzureHandlers", "AzureWebRole.MessageProcessor.AzureHandlers\MessageProcessor.AzureHandlers.csproj", "{50F3E086-DCAF-4B96-A85C-334239B9CEFA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.ServiceBus", "src\MessageProcessor.ServiceBus\MessageProcessor.ServiceBus.csproj", "{751072EE-964F-4A83-8B93-FB758FC9353D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.BlobStorageRepository", "MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository.csproj", "{A5F70B3A-3328-44BF-87C4-36520E3B294E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Unity", "src\MessageProcessor.Unity\MessageProcessor.Unity.csproj", "{3FB9015D-FC7F-4051-8711-F1D1F5F2A6F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.ApplicationInsights", "MessageProcessor.ApplicationInsight\MessageProcessor.ApplicationInsights.csproj", "{1C035FE6-6C79-43B3-83FC-3354943E975B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.AzureHandlers", "src\MessageProcessor.AzureHandlers\MessageProcessor.AzureHandlers.csproj", "{50F3E086-DCAF-4B96-A85C-334239B9CEFA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.ApplicationInsights", "src\MessageProcessor.ApplicationInsight\MessageProcessor.ApplicationInsights.csproj", "{1C035FE6-6C79-43B3-83FC-3354943E975B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Ninject", "src\MessageProcessor.Ninject\MessageProcessor.Ninject.csproj", "{6E872116-72F1-4389-A3A0-43537BC4F376}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.BlobStorageRepository", "src\MessageProcessor.BlobStorageRepository\MessageProcessor.BlobStorageRepository.csproj", "{A5F70B3A-3328-44BF-87C4-36520E3B294E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,30 +38,26 @@ Global
 		{751072EE-964F-4A83-8B93-FB758FC9353D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{751072EE-964F-4A83-8B93-FB758FC9353D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{751072EE-964F-4A83-8B93-FB758FC9353D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6E872116-72F1-4389-A3A0-43537BC4F376}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6E872116-72F1-4389-A3A0-43537BC4F376}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6E872116-72F1-4389-A3A0-43537BC4F376}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6E872116-72F1-4389-A3A0-43537BC4F376}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3FB9015D-FC7F-4051-8711-F1D1F5F2A6F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3FB9015D-FC7F-4051-8711-F1D1F5F2A6F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3FB9015D-FC7F-4051-8711-F1D1F5F2A6F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3FB9015D-FC7F-4051-8711-F1D1F5F2A6F4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3B1FE177-4D29-491D-805D-9971E79A3BFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3B1FE177-4D29-491D-805D-9971E79A3BFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3B1FE177-4D29-491D-805D-9971E79A3BFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3B1FE177-4D29-491D-805D-9971E79A3BFD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{50F3E086-DCAF-4B96-A85C-334239B9CEFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{50F3E086-DCAF-4B96-A85C-334239B9CEFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50F3E086-DCAF-4B96-A85C-334239B9CEFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{50F3E086-DCAF-4B96-A85C-334239B9CEFA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C035FE6-6C79-43B3-83FC-3354943E975B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E872116-72F1-4389-A3A0-43537BC4F376}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E872116-72F1-4389-A3A0-43537BC4F376}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E872116-72F1-4389-A3A0-43537BC4F376}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E872116-72F1-4389-A3A0-43537BC4F376}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5F70B3A-3328-44BF-87C4-36520E3B294E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
