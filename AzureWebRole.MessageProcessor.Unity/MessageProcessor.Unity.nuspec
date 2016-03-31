@@ -1,17 +1,14 @@
 ﻿<?xml version="1.0"?>
 <package >
   <metadata>
-    <id>S-Innovations.Azure.MessageProcessor.AzureHandlers</id>
+    <id>$id$</id>
     <version>$version$</version>
     <title>$title$</title>
     <authors>$author$</authors>
     <owners>$author$</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <copyright>Copyright 2015</copyright>
-    <tags>S-Innovations CQRS</tags>
-    <dependencies>
-      <dependency id="S-Innovations.Azure.MessageProcessor" version="$version$"  />
-    </dependencies>
+    <copyright>Copyright 2014</copyright>
+    <tags>S-Innovations Azure MessageProcessor</tags>
   </metadata>
 </package>

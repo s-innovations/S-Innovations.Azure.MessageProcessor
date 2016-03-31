@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <package >
   <metadata>
-    <id>S-Innovations.Azure.MessageProcessor.ServiceBus</id>
+    <id>$id$</id>
     <version>$version$</version>
     <title>$title$</title>
     <authors>$author$</authors>
@@ -9,10 +9,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>  
     <copyright>Copyright 2015</copyright>
-    <tags>S-Innovations</tags>
-    <dependencies>
-      <dependency id="S-Innovations.Azure.MessageProcessor" version="$version$"  />
-    </dependencies>
+    <tags>S-Innovations Azure MessageProcessor</tags>
   </metadata>
  
 </package>

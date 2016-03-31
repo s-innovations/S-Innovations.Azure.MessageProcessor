@@ -31,7 +31,7 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0")]
+[assembly: AssemblyInformationalVersion("2.0.0")]
 [assembly: AssemblyCompany("S-Innovations v/Poul K. Sørensen")]
 [assembly: AssemblyDescription("Extensions for working with application insights")]
 
