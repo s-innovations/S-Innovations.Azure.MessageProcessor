@@ -8,6 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D19EBB
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		.nuget\NuGet.Config = .nuget\NuGet.Config
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageProcessor.Core", "src\MessageProcessor.Core\MessageProcessor.Core.csproj", "{5F5CAEBA-6724-4A10-A38A-80B0489E579C}"

@@ -1,7 +1,7 @@
 
 Azure Webrole Message Processor
 ============================
-[![GoogleAnalyticsTracker Nightly Build Status](https://www.myget.org/BuildSource/Badge/s-innovations?identifier=d21c651e-1853-4a8d-8b4c-8e1f724ef3f0)](https://www.myget.org/gallery/googleanalyticstracker)
+![](https://sinnovations.visualstudio.com/DefaultCollection/_apis/public/build/definitions/40c16cc5-bf99-47d4-a814-56c38cc0ea24/7/badge)
 
 I created this project with the boiler plate code I always use when doing a worker/web role for queue processing. 
 
