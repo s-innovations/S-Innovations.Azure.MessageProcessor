@@ -9,7 +9,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
     public interface IMessageProcessorClientProvider<TOptions, MessageType> : IDisposable where TOptions : IMessageProcessorProviderOptions<MessageType>
     {
         TOptions Options { get; }
-        Task<T> FromMessageAsync<T>(MessageType m) where T : BaseMessage;
+        Task<BaseMessage> FromMessageAsync(MessageType m);
        
     }
 }

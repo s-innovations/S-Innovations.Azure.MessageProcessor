@@ -313,35 +313,39 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
         }
         static MethodInfo method = typeof(BrokeredMessage).GetMethod("GetBody", new Type[] { });
-        public async Task<T> FromMessageAsync<T>(BrokeredMessage m) where T : BaseMessage
+        public async Task<BaseMessage> FromMessageAsync(BrokeredMessage message)
         {
-
-            var messageBodyType =
-                      Type.GetType(m.Properties["messageType"].ToString());
-            if (messageBodyType == null)
+            if (message.Properties.ContainsKey("messageType"))
             {
-                //Should never get here as a messagebodytype should
-                //always be set BEFORE putting the message on the queue
-                Logger.ErrorFormat("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString());
-                // m.DeadLetter();
-                throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", m.MessageId, m.Properties["messageType"].ToString()));
+                var messageBodyType =
+                          Type.GetType(message.Properties["messageType"].ToString());
+                if (messageBodyType == null)
+                {
+                    //Should never get here as a messagebodytype should
+                    //always be set BEFORE putting the message on the queue
+                    Logger.ErrorFormat("MessageType could not be loaded.message {0}, {1}", message.MessageId, message.Properties["messageType"].ToString());
+                    // m.DeadLetter();
+                    throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", message.MessageId, message.Properties["messageType"].ToString()));
+                }
+
+                MethodInfo generic = method.MakeGenericMethod(messageBodyType);
+                var messageBody = (BaseMessage)generic.Invoke(message, null);
+
+
+                if (Options.RepositoryProvider != null && messageBody is IModelBasedMessage)
+                {
+                    var modelHolder = messageBody as IModelBasedMessage;
+
+                    var repository = Options.RepositoryProvider.GetRepository();
+                    await repository.GetModelAsync(modelHolder);
+
+                }
+
+
+                return messageBody;
             }
 
-            MethodInfo generic = method.MakeGenericMethod(messageBodyType);
-            var messageBody = (T)generic.Invoke(m, null);
-
-
-            if (Options.RepositoryProvider != null && messageBody is IModelBasedMessage)
-            {
-                var modelHolder = messageBody as IModelBasedMessage;
-
-                var repository = Options.RepositoryProvider.GetRepository();
-                await repository.GetModelAsync(modelHolder);
-
-            }
-
-
-            return messageBody;
+            return new DefaultServiceBusBaseMessage(message) ;
         }
         private ConcurrentDictionary<Type, Action<BrokeredMessage, object>[]> promoters = new ConcurrentDictionary<Type, Action<BrokeredMessage, object>[]>();
 
@@ -567,5 +571,13 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
 
 
+    }
+    public class DefaultServiceBusBaseMessage : BaseMessage
+    {
+        public BrokeredMessage Message { get; set; }
+        public DefaultServiceBusBaseMessage(BrokeredMessage message)
+        {
+            Message = message;
+        }
     }
 }

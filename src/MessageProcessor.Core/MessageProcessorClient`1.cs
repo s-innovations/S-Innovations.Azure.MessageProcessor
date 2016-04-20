@@ -168,8 +168,9 @@ namespace SInnovations.Azure.MessageProcessor.Core
         public async Task OnMessageAsync(MessageType message)
         {
 
-            BaseMessage baseMessage = await _options.Provider.FromMessageAsync<BaseMessage>(message);
+            BaseMessage baseMessage = await _options.Provider.FromMessageAsync(message);
             baseMessage.MessageId = await _options.Provider.GetMessageIdForMessageAsync(message);
+
             _lastMessageRecieved = DateTimeOffset.UtcNow;
             var enqued = await _options.Provider.GetEnqueuedTimeUtcAsync(message);
             var transmitTime = DateTime.UtcNow.Subtract(enqued);
