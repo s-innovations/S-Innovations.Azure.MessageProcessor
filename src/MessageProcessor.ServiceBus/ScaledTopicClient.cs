@@ -1,6 +1,7 @@
-﻿using Microsoft.ServiceBus;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
-using SInnovations.Azure.MessageProcessor.Core.Logging;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,7 +14,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
     public class ScaledTopicClient
     {
-        static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+        private readonly ILogger<ScaledTopicClient> _logger;
 
         private const string DEFAULT_COORELATION_ID = "__DEFAULT__";
         //private readonly ServiceBusMessageProcessorProviderOptions options;
@@ -22,8 +23,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         private readonly Dictionary<string, Lazy<TopicClient>[]> LazyTopicClients;
 
         //private readonly NamespaceManager namespaceManager;
-        public ScaledTopicClient(ServiceBusMessageProcessorProviderOptions options)
+        public ScaledTopicClient(ILogger<ScaledTopicClient> logger, ServiceBusMessageProcessorProviderOptions options)
         {
+            this._logger = logger;
             //   this.options = options;
             this.R = new Random();
             this._scaleCount = options.TopicScaleCount.Value;
@@ -60,7 +62,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         {
 
 
-            Logger.TraceFormat("Creating Topic Client: {0}, {1}", conn, topicname);
+            _logger.LogTrace("Creating Topic Client: {connection}, {topicname}", conn, topicname);
 
             return TopicClient.CreateFromConnectionString(conn, topicname);
         }
@@ -71,8 +73,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             int r = R.Next(_scaleCount);
             TopicClient client = GetClient(message.CorrelationId, r);
 
-            Logger.TraceFormat(string.Format("Posting Message onto Topic {1} '{0}'",
-                client.Path, r));
+            _logger.LogTrace("Posting Message onto Topic {clientPath} '{clientNumber}'",
+                client.Path, r);
 
             return client.SendAsync(message);
 
@@ -96,7 +98,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 var r = R.Next(_scaleCount);
                 TopicClient client = GetClient(group.Key, r);
 
-                Logger.TraceFormat("Posting Messages onto Topic {1} '{0}'", client.Path, r);
+                _logger.LogTrace("Posting Messages onto Topic {clientPath} '{clientNumber}'", client.Path, r);
 
                 return client.SendBatchAsync(messages);
             });

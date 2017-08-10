@@ -1,5 +1,4 @@
-﻿using SInnovations.Azure.MessageProcessor.Core.Logging;
-using SInnovations.Azure.MessageProcessor.Core.Notifications;
+﻿using SInnovations.Azure.MessageProcessor.Core.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
 using SInnovations.Azure.MessageProcessor.Core.Schedules;
+using Microsoft.Extensions.Logging;
 
 namespace SInnovations.Azure.MessageProcessor.Core
 {
@@ -24,7 +24,8 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
     public class MessageProcessorClient<MessageType> : IMessageProcessorClient
     {
-        private static ILog Logger = LogProvider.GetCurrentClassLogger();
+        //  private static ILog Logger = LogProvider.GetCurrentClassLogger();
+        private readonly ILogger<MessageProcessorClient<MessageType>> _logger;
         private ManualResetEvent _completeBlocker = new ManualResetEvent(false);
         private bool _resetOnNextIdle = false;
 
@@ -34,9 +35,10 @@ namespace SInnovations.Azure.MessageProcessor.Core
         private TaskCompletionSource<int> _stoppedListeningCompletionSource;
 
 
-        public MessageProcessorClient(MessageProcessorClientOptions<MessageType> options)
+        public MessageProcessorClient(ILogger<MessageProcessorClient<MessageType>> logger, MessageProcessorClientOptions<MessageType> options)
         {
             _options = options;
+            _logger = logger;
         }
 
 
@@ -45,7 +47,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
         #region Listening Mode
         public Task StartProcessorAsync()
         {
-            Logger.Info("Starting Message Processor Client");
+            _logger.LogInformation("Starting Message Processor Client");
 
             _startingCompletionSource = new TaskCompletionSource<int>();
             _runnerTask = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
@@ -55,7 +57,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
         public async Task RestartProcessorAsync()
         {
-            Logger.Info("Restarting Message Processor Client");
+            _logger.LogInformation("Restarting Message Processor Client");
 
             await StopProcessorAsync();
             await StartProcessorAsync();
@@ -63,7 +65,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
         public Task StopProcessorAsync()
         {
-            Logger.Info("Stopping Message Processor Client");
+            _logger.LogInformation("Stopping Message Processor Client");
 
             _stoppedListeningCompletionSource = new TaskCompletionSource<int>();
 
@@ -199,17 +201,18 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
                     }catch(Exception ex)
                     {
-                        Logger.WarnException("Notification MesssageStarted Failed for messageid {0} : ", ex,baseMessage.MessageId);
+                        _logger.LogWarning(ex,"Notification MesssageStarted Failed for {messageId}",baseMessage.MessageId);
+                        
                     }
 
                   
-                    Logger.DebugFormat("Starting with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
+                    _logger.LogTrace("Starting with message<{messageTypeName}> : {messageId} {@baseMessage}", baseMessage.GetType().Name, baseMessage.MessageId, baseMessage);
 
                     if (!await MoveToDeadLetterHandlingAsync(message, baseMessage, resolver))
                     {
                         await ProccessMessageHandlingAsync(message, baseMessage, resolver);
 
-                        Logger.DebugFormat("Done with message<{0}> : {1}", baseMessage.GetType().Name, baseMessage);
+                        _logger.LogTrace("Done with message<{messageTypeName}> : {messageId}", baseMessage.GetType().Name, baseMessage.MessageId);
 
                         await FinalizeMessageAsync(message, baseMessage, transmitTime, sw, resolver);
                     }
@@ -238,7 +241,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
                 try
                 {
                     var moveToDeadLetterEvent = new MovingToDeadLetterNotification(resolver) { Message = baseMessage };
-                    Logger.DebugFormat("Moving message : {0} to deadletter", message);
+                   _logger.LogTrace("Moving message : {@message} to deadletter", message);
 
                     if (_options.Notifications != null)
                         await _options.Notifications.MovingMessageToDeadLetterAsync(moveToDeadLetterEvent);
@@ -251,7 +254,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
                 }
                 catch (Exception ex)
                 {
-                    Logger.WarnException("Moving message to deadletter failed for messageid {0} : ", ex, baseMessage.MessageId);
+                    _logger.LogWarning(ex,"Moving message to deadletter failed for {messageid}", baseMessage.MessageId);
                     throw;
                 }
             }
@@ -282,14 +285,14 @@ namespace SInnovations.Azure.MessageProcessor.Core
                     if (t == MaximumTimeTask)
                         throw new TimeoutException(string.Format("The handler could not finish in given time :{0}", timeout));
 
-                    Logger.DebugFormat("Renewing Task<processingTask:{0}>", processingTask.Status.ToString());
+                    _logger.LogTrace("Renewing Task<processingTask:{processingTaskStatus}>", processingTask.Status.ToString());
                     try
                     {
                         await _options.Provider.RenewLockAsync(message);
                     }
                     catch (Exception ex)
                     {
-                        Logger.InfoException("Renew Lock Exception: {0}", ex);
+                        _logger.LogWarning(ex,"Renew Lock Exception");
                     }
                 }
                 try
@@ -299,14 +302,14 @@ namespace SInnovations.Azure.MessageProcessor.Core
                 }
                 catch (Exception ex)
                 {
-                    Logger.WarnException("Processing Execution failed for messageid {0} : ", ex, baseMessage.MessageId);
+                    _logger.LogWarning(ex,"Processing Execution failed for {messageid}", baseMessage.MessageId);
                     throw;
 
                 }
             }
             catch (Exception ex)
             {
-                Logger.WarnException("Main Execution Loop failed for messageid {0} : ", ex, baseMessage.MessageId);
+                _logger.LogWarning(ex,"Main Execution Loop failed for {messageid}", baseMessage.MessageId);
                 throw;
             }
         }
@@ -333,7 +336,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             }
             catch (Exception ex)
             {
-                Logger.WarnException("Notification MessageCompleted Failed for messageid {0} : ", ex, baseMessage.MessageId);
+                _logger.LogWarning(ex,"Notification MessageCompleted Failed for {messageid}", baseMessage.MessageId);
             }
         }
 
@@ -352,7 +355,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             }
             catch (Exception ex)
             {
-                Logger.WarnException("Failed to resend timed message {0} : ", ex, baseMessage.MessageId);
+                _logger.LogWarning(ex,"Failed to resend timed message with {messageId} : ", baseMessage.MessageId);
             }
         }
 
