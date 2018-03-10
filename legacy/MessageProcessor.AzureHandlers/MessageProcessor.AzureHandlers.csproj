@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>SInnovations.Azure.MessageProcessor.AzureHandlers</RootNamespace>
+    <AssemblyName>S-Innovations.Azure.MessageProcessor.AzureHandlers</AssemblyName>
+    <Company>S-Innovations v/Poul K. Sørensen</Company>
+    <Description>The Azure Messages and MessageHandlers </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MessageProcessor.Core\MessageProcessor.Core.csproj" />
+  </ItemGroup>
+
+</Project>

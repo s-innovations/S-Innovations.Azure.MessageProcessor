@@ -1,7 +1,7 @@
-﻿using Microsoft.ServiceBus;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
 using SInnovations.Azure.MessageProcessor.Core;
-using SInnovations.Azure.MessageProcessor.Core.Logging;
 using SInnovations.Azure.MessageProcessor.Core.Schedules;
 using System;
 using System.Collections.Concurrent;
@@ -20,7 +20,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
     public class ServiceBusMessageProcessorProvider : ServiceBusMessageProcessorClientProvider
     {
-        static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+        private readonly ILogger<ServiceBusMessageProcessorProvider> _logger;
+        private readonly ILoggerFactory _loggerFacory;
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
 
@@ -35,8 +36,10 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         public bool SupportFilteredTopic { get { return options.TopicScaleCount.HasValue; } }
 
 
-        public ServiceBusMessageProcessorProvider(ServiceBusMessageProcessorProviderOptions options)
+        public ServiceBusMessageProcessorProvider(ILoggerFactory loggerFacory, ServiceBusMessageProcessorProviderOptions options)
         {
+            this._loggerFacory = loggerFacory;
+            this._logger = loggerFacory.CreateLogger< ServiceBusMessageProcessorProvider>();
             this.options = options;
 
             if (SupportTopic)
@@ -45,7 +48,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 LazyQueueClient = new Lazy<QueueClient>(CreateQueueClient);
             if (SupportFilteredTopic)
             {
-                ScaledTopicClient = new ScaledTopicClient(options);
+                ScaledTopicClient = new ScaledTopicClient(loggerFacory.CreateLogger<ScaledTopicClient>(), options);
             }
 
 
@@ -114,12 +117,12 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 }
             };
 
-            Logger.InfoFormat("Creating {0} Topics", options.TopicScaleCount.Value);
+            _logger.LogInformation("Creating {topicScaleCount} Topics", options.TopicScaleCount.Value);
 
             for (int i = 0, ii = options.TopicScaleCount.Value; i < ii; ++i)
             {
 
-                Logger.InfoFormat("With '{0}' as filters.", string.Join(", ", options.CorrelationToQueueMapping.Keys));
+                _logger.LogInformation("With '{correlationKeys}' as filters.", string.Join(", ", options.CorrelationToQueueMapping.Keys));
 
                 foreach (var group in options.CorrelationToQueueMapping
                     .Select(mapping => new
@@ -128,7 +131,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                         NameSpaceManager = GetNamespaceManagerForCorrelationId(mapping.Key)
                     }).GroupBy(mapping => mapping.NameSpaceManager.Address.AbsoluteUri))
                 {
-                    Logger.InfoFormat("With {0} ConnectionString Groups", group.Count());
+                    _logger.LogInformation("With {groupCount} ConnectionString Groups", group.Count());
                     foreach (var mapping in group)
                     {
 
@@ -146,7 +149,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                         if (topic != null)
                             forwardPath = topic.Path;
 
-                        Logger.InfoFormat("Found Forward Path {0}", forwardPath);
+                        _logger.LogInformation("Found Forward Path {forwardPath}", forwardPath);
 
                         options.SubscriptionDescription.Name = originalSubscriptionName + "2" + forwardPath;
                         options.SubscriptionDescription.TopicPath = options.TopicDescription.Path;
@@ -155,12 +158,12 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
                         if (!await namespaceManager.SubscriptionExistsAsync(options.TopicDescription.Path, options.SubscriptionDescription.Name))
                         {
-                            Logger.InfoFormat("Creating Subscription {0}", options.SubscriptionDescription.Name);
+                            _logger.LogInformation("Creating Subscription {subscriptionName}", options.SubscriptionDescription.Name);
                             await namespaceManager.CreateSubscriptionAsync(options.SubscriptionDescription, new CorrelationFilter(mapping.Map.Key));
                         }
                         else
                         {
-                            Logger.InfoFormat("Subscription {0} Already Created", options.SubscriptionDescription.Name);
+                            _logger.LogInformation("Subscription {subscriptionName} Already Created", options.SubscriptionDescription.Name);
                         }
 
                     }
@@ -220,7 +223,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Failed To setup Topic: {0} with {1}", this.options.TopicDescription.Path, ex.ToString());
+                _logger.LogError(ex,"Failed To setup Topic: {topicPath}", this.options.TopicDescription.Path);
                 throw;
             }
             try
@@ -232,7 +235,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Failed To setup Topic: {0} with {1}", this.options.SubscriptionDescription.TopicPath, ex.ToString());
+                _logger.LogError(ex, "Failed To setup Topic: {topicPath}", this.options.SubscriptionDescription.TopicPath);
                 throw;
             }
 
@@ -264,7 +267,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Failed To setup Queue: {0} with {1}", this.options.QueueDescription.Path, ex.ToString());
+                _logger.LogError(ex,"Failed To setup Queue: {queueName}", 
+                    this.options.QueueDescription.Path);
                 throw;
             }
 
@@ -279,8 +283,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Failed To setup subscription: {0} {2} with {1}",
-                    this.options.SubscriptionDescription.TopicPath, ex.ToString(), this.options.SubscriptionDescription.Name);
+                _logger.LogError(ex,"Failed To setup subscription: {topicPath} {subscriptionName}",
+                    this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
                 throw;
             }
 
@@ -300,7 +304,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Logger.ErrorFormat("Failed To setup subscription client: {0} {2} with {1}",
+                _logger.LogError(ex,"Failed To setup subscription client: {topicPath} {subscriptionName}",
                     this.options.SubscriptionDescription.TopicPath, ex.ToString(),
                     this.options.SubscriptionDescription.Name);
                 throw;
@@ -323,7 +327,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 {
                     //Should never get here as a messagebodytype should
                     //always be set BEFORE putting the message on the queue
-                    Logger.ErrorFormat("MessageType could not be loaded.message {0}, {1}", message.MessageId, message.Properties["messageType"].ToString());
+                    _logger.LogError("MessageType could not be loaded.message {messageId}, {messageType}", message.MessageId, message.Properties["messageType"].ToString());
                     // m.DeadLetter();
                     throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", message.MessageId, message.Properties["messageType"].ToString()));
                 }
@@ -362,7 +366,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                     actions.Add((msg, serializableObject) =>
                     {
                         object value = prop.GetValue(serializableObject, null);
-                        Logger.TraceFormat("Promoting {0} with {1}", name, value);
+                        _logger.LogTrace("Promoting {name} with {value}", name, value);
                         switch (name)
                         {
                             case "SessionId":
@@ -400,7 +404,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                Logger.ErrorException("Failed to promote properties", ex);
+                _logger.LogError(ex,"Failed to promote properties");
             }
 
             if (options.CorrelationIdProvider != null)
@@ -446,9 +450,11 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
         private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
         {
-            Logger.Info("ExceptionReceived");
+           
             if (e.Exception != null)
-                Trace.TraceError("{0} {1}", e.Exception, e.Exception.InnerException);
+                _logger.LogError(e.Exception, "Exception recieved {action}", e.Action);
+            else
+                _logger.LogWarning("Exception recieved {action}", e.Action);
 
         }
 
