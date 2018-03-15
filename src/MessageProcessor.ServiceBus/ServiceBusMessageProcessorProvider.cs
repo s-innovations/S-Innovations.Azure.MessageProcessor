@@ -1,15 +1,19 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.ServiceBus;
-using Microsoft.ServiceBus.Messaging;
+﻿using Microsoft.Azure.ServiceBus;
+using Microsoft.Azure.ServiceBus.Core;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SInnovations.Azure.MessageProcessor.Core;
 using SInnovations.Azure.MessageProcessor.Core.Schedules;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -25,9 +29,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
         private readonly ServiceBusMessageProcessorProviderOptions options;
 
-        private ClientEntity Client;
+        private IMessageReceiver Client;
         private readonly Lazy<TopicClient> LazyTopicClient;
-        private readonly Lazy<QueueClient> LazyQueueClient;
+        private readonly Lazy<IMessageReceiver> LazyQueueClient;
         private readonly ScaledTopicClient ScaledTopicClient;
 
         public bool SupportTopic { get { return options.TopicDescription != null; } }
@@ -39,13 +43,13 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         public ServiceBusMessageProcessorProvider(ILoggerFactory loggerFacory, ServiceBusMessageProcessorProviderOptions options)
         {
             this._loggerFacory = loggerFacory;
-            this._logger = loggerFacory.CreateLogger< ServiceBusMessageProcessorProvider>();
+            this._logger = loggerFacory.CreateLogger<ServiceBusMessageProcessorProvider>();
             this.options = options;
 
             if (SupportTopic)
                 LazyTopicClient = new Lazy<TopicClient>(CreateTopicClient);
             if (SupportQueue)
-                LazyQueueClient = new Lazy<QueueClient>(CreateQueueClient);
+                LazyQueueClient = new Lazy<IMessageReceiver>(CreateQueueClient);
             if (SupportFilteredTopic)
             {
                 ScaledTopicClient = new ScaledTopicClient(loggerFacory.CreateLogger<ScaledTopicClient>(), options);
@@ -54,18 +58,18 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
         }
 
-        private QueueClient CreateQueueClient()
+        private IMessageReceiver CreateQueueClient()
         {
 
             var namespaceManager =
-               NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+               NamespaceManager.CreateFromConnectionString(this.options.ConnectionString, this.options.Client, this.options.ResourceGroup);
 
-            if (!namespaceManager.QueueExists(this.options.QueueDescription.Path))
+            if (!namespaceManager.QueueExistsAsync(this.options.QueueDescription.Path).Result)
             {
-                namespaceManager.CreateQueue(this.options.QueueDescription);
+                namespaceManager.CreateQueueAsync(this.options.QueueDescription).Wait();
             }
             Trace.WriteLine(string.Format("Creating Queue Client for {0} at {1}", this.options.QueueDescription.Path, namespaceManager.Address));
-            var client = QueueClient.CreateFromConnectionString(this.options.ConnectionString, this.options.QueueDescription.Path);
+            var client = new MessageReceiver(this.options.ConnectionString, this.options.QueueDescription.Path);
 
             return client;
         }
@@ -74,15 +78,16 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         {
             Trace.WriteLine(string.Format("Creating Topic Client: {0} for Path: {1}", this.options.ConnectionString, this.options.TopicDescription.Path));
             var namespaceManager =
-                NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+                NamespaceManager.CreateFromConnectionString(this.options.ConnectionString, this.options.Client, this.options.ResourceGroup);
 
-            if (!namespaceManager.TopicExists(this.options.TopicDescription.Path))
+            if (!namespaceManager.TopicExistsAsync(this.options.TopicDescription.Path).Result)
             {
-                namespaceManager.CreateTopic(this.options.TopicDescription);
+                namespaceManager.CreateTopicAsync(this.options.TopicDescription).Wait();
 
             }
 
-            return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
+            return new TopicClient(this.options.ConnectionString, this.options.TopicDescription.Path);
+            // return TopicClient.CreateFromConnectionString(this.options.ConnectionString, this.options.TopicDescription.Path);
         }
 
         private NamespaceManager GetNamespaceManagerForCorrelationId(string id = null)
@@ -90,9 +95,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             if (options.ConnectionStringProvider != null && id != null)
             {
                 if (options.ConnectionStringProvider.ContainsKey(id))
-                    return NamespaceManager.CreateFromConnectionString(options.ConnectionStringProvider[id]);
+                    return NamespaceManager.CreateFromConnectionString(options.ConnectionStringProvider[id], options.Client, this.options.ResourceGroup);
             }
-            return NamespaceManager.CreateFromConnectionString(this.options.ConnectionString);
+            return NamespaceManager.CreateFromConnectionString(this.options.ConnectionString, options.Client, this.options.ResourceGroup);
         }
         /// <summary>
         /// Creates all the topics,subscriptions for Filtered Queues
@@ -205,32 +210,35 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
 
         }
-        public void StartListening(Func<BrokeredMessage, Task> onMessageAsync)
+       // PropertyInfo InnerReceiverQueueClient = typeof(QueueClient).GetProperty("InnerReceiver", BindingFlags.Instance | BindingFlags.NonPublic);
+      //  PropertyInfo InnerSubscriptionClient = typeof(SubscriptionClient).GetProperty("InnerSubscriptionClient", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        public async Task StartListeningAsync(Func<Message, CancellationToken, Task> onMessageAsync)
         {
 
-            string connectionString = this.options.ConnectionString;
+
 
             var namespaceManager =
-                NamespaceManager.CreateFromConnectionString(connectionString);
+                NamespaceManager.CreateFromConnectionString(this.options.ConnectionString, this.options.Client, this.options.ResourceGroup);
 
 
             try
             {
-                if (SupportTopic && !namespaceManager.TopicExists(this.options.TopicDescription.Path))
+                if (SupportTopic && !await namespaceManager.TopicExistsAsync(this.options.TopicDescription.Path))
                 {
-                    namespaceManager.CreateTopic(this.options.TopicDescription);
+                    await namespaceManager.CreateTopicAsync(this.options.TopicDescription);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,"Failed To setup Topic: {topicPath}", this.options.TopicDescription.Path);
+                _logger.LogError(ex, "Failed To setup Topic: {topicPath}", this.options.TopicDescription.Path);
                 throw;
             }
             try
             {
-                if (SupportSubscription && !namespaceManager.TopicExists(this.options.SubscriptionDescription.TopicPath))
+                if (SupportSubscription && !await namespaceManager.TopicExistsAsync(this.options.SubscriptionDescription.TopicPath))
                 {
-                    namespaceManager.CreateTopic(this.options.SubscriptionDescription.TopicPath);
+                    await namespaceManager.CreateTopicAsync(this.options.SubscriptionDescription.TopicPath);
                 }
             }
             catch (Exception ex)
@@ -239,7 +247,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 throw;
             }
 
-            var messageOptions = new OnMessageOptions
+            var messageOptions = new MessageHandlerOptions(options_ExceptionReceived)
             {
                 MaxConcurrentCalls = this.options.MaxConcurrentProcesses,
                 AutoComplete = false,
@@ -247,7 +255,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             // if (Options.AutoRenewLockTime.HasValue)
             //     messageOptions.AutoRenewTimeout = Options.AutoRenewLockTime.Value;
 
-            messageOptions.ExceptionReceived += options_ExceptionReceived;
+            //  messageOptions.ExceptionReceivedHandler += options_ExceptionReceived;
 
 
             //Make sure that queues are created first if the subscription could be a forward
@@ -259,15 +267,18 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
                     if (string.IsNullOrEmpty(this.options.QueueDescription.ForwardTo))
                     {
-                        client.OnMessageAsync(onMessageAsync, messageOptions);
+                        //  client.OnMessageAsync(onMessageAsync, messageOptions);
+                        //                        client.RegisterMessageHandler(onMessageAsync, messageOptions);
 
-                        Client = client;
+                        // Client = (MessageReceiver)InnerReceiverQueueClient.GetValue(client);
+                        Client = client;// new MessageReceiver(this.options.ConnectionString, $"{this.options.SubscriptionDescription.TopicPath}/{this.options.SubscriptionDescription.Name}");
+                        Client.RegisterMessageHandler(onMessageAsync, messageOptions);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,"Failed To setup Queue: {queueName}", 
+                _logger.LogError(ex, "Failed To setup Queue: {queueName}",
                     this.options.QueueDescription.Path);
                 throw;
             }
@@ -276,14 +287,14 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
             try
             {
-                if (SupportSubscription && !namespaceManager.SubscriptionExists(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
+                if (SupportSubscription && !await namespaceManager.SubscriptionExistsAsync(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name))
                 {
-                    namespaceManager.CreateSubscription(this.options.SubscriptionDescription);
+                    await namespaceManager.CreateSubscriptionAsync(this.options.SubscriptionDescription);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,"Failed To setup subscription: {topicPath} {subscriptionName}",
+                _logger.LogError(ex, "Failed To setup subscription: {topicPath} {subscriptionName}",
                     this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
                 throw;
             }
@@ -294,69 +305,88 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 //Only use it if it is not a forward subscription.
                 if (SupportSubscription && string.IsNullOrEmpty(this.options.SubscriptionDescription.ForwardTo))
                 {
-                    var client = SubscriptionClient.CreateFromConnectionString
-                      (connectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
-                    //  OnMessageAsync(onMessageAsync, messageOptions);
-                    client.OnMessageAsync(onMessageAsync, messageOptions);
+                    //var client = new SubscriptionClient// SubscriptionClient.CreateFromConnectionString
+                    //  (this.options.ConnectionString, this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name);
+                    ////  OnMessageAsync(onMessageAsync, messageOptions);
+                    //client.RegisterMessageHandler(onMessageAsync, messageOptions);
+                    ////  client.OnMessageAsync(onMessageAsync, messageOptions);
+                    //var a = InnerSubscriptionClient.GetValue(client);
+                    //;
+                    //Client = (MessageReceiver)a.GetType().GetProperty("InnerReceiver", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(a);
 
-                    Client = client;
+                    Client = new MessageReceiver(this.options.ConnectionString, $"{this.options.SubscriptionDescription.TopicPath}/{this.options.SubscriptionDescription.Name}");
+                    Client.RegisterMessageHandler(onMessageAsync, messageOptions);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,"Failed To setup subscription client: {topicPath} {subscriptionName}",
+                _logger.LogError(ex, "Failed To setup subscription client: {topicPath} {subscriptionName}",
                     this.options.SubscriptionDescription.TopicPath, ex.ToString(),
                     this.options.SubscriptionDescription.Name);
                 throw;
             }
 
-            if (Client != null)
-            {
-                Client.RetryPolicy = RetryExponential.Default;
-            }
+            //if (Client != null)
+            //{
+            //    Client.RetryPolicy = RetryExponential.Default;
+            //}
 
         }
-        static MethodInfo method = typeof(BrokeredMessage).GetMethod("GetBody", new Type[] { });
-        public async Task<BaseMessage> FromMessageAsync(BrokeredMessage message)
+        //   static MethodInfo method = typeof(BrokeredMessage).GetMethod("GetBody", new Type[] { });
+        public async Task<BaseMessage> FromMessageAsync(Message message)
         {
-            if (message.Properties.ContainsKey("messageType"))
+
+            if (message.UserProperties.ContainsKey("messageType"))
             {
                 var messageBodyType =
-                          Type.GetType(message.Properties["messageType"].ToString());
+                          Type.GetType(message.UserProperties["messageType"].ToString());
                 if (messageBodyType == null)
                 {
                     //Should never get here as a messagebodytype should
                     //always be set BEFORE putting the message on the queue
-                    _logger.LogError("MessageType could not be loaded.message {messageId}, {messageType}", message.MessageId, message.Properties["messageType"].ToString());
+                    _logger.LogError("MessageType could not be loaded.message {messageId}, {messageType}", message.MessageId, message.UserProperties["messageType"].ToString());
                     // m.DeadLetter();
-                    throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", message.MessageId, message.Properties["messageType"].ToString()));
+                    throw new Exception(string.Format("MessageType could not be loaded.message {0}, {1}", message.MessageId, message.UserProperties["messageType"].ToString()));
                 }
 
-                MethodInfo generic = method.MakeGenericMethod(messageBodyType);
-                var messageBody = (BaseMessage)generic.Invoke(message, null);
+                // MethodInfo generic = method.MakeGenericMethod(messageBodyType);
+                //  var messageBody = (BaseMessage)generic.Invoke(message, null);
 
-
-                if (Options.RepositoryProvider != null && messageBody is IModelBasedMessage)
+                using (var gzip = new GZipStream(new MemoryStream(message.Body), CompressionMode.Decompress, true))
                 {
-                    var modelHolder = messageBody as IModelBasedMessage;
+                    using (var streamReader = new StreamReader(gzip))
+                    {
+                        using (var jsonReader = new JsonTextReader(streamReader))
+                        {
+                            var messageBody = (BaseMessage)serializer.Deserialize(jsonReader, messageBodyType);
 
-                    var repository = Options.RepositoryProvider.GetRepository();
-                    await repository.GetModelAsync(modelHolder);
 
+
+
+                            if (Options.RepositoryProvider != null && messageBody is IModelBasedMessage)
+                            {
+                                var modelHolder = messageBody as IModelBasedMessage;
+
+                                var repository = Options.RepositoryProvider.GetRepository();
+                                await repository.GetModelAsync(modelHolder);
+
+                            }
+
+
+                            return messageBody;
+                        }
+                    }
                 }
-
-
-                return messageBody;
             }
 
-            return new DefaultServiceBusBaseMessage(message) ;
+            return new DefaultServiceBusBaseMessage(message);
         }
-        private ConcurrentDictionary<Type, Action<BrokeredMessage, object>[]> promoters = new ConcurrentDictionary<Type, Action<BrokeredMessage, object>[]>();
+        private ConcurrentDictionary<Type, Action<Message, object>[]> promoters = new ConcurrentDictionary<Type, Action<Message, object>[]>();
 
-        private Action<BrokeredMessage, object>[] Factory(Type type)
+        private Action<Message, object>[] Factory(Type type)
         {
 
-            var actions = new List<Action<BrokeredMessage, object>>();
+            var actions = new List<Action<Message, object>>();
             PropertyInfo[] properties = type.GetProperties();
             foreach (PropertyInfo prop in properties)
             {
@@ -376,7 +406,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                                 msg.ScheduledEnqueueTimeUtc = (DateTime)value;
                                 break;
                             default:
-                                msg.Properties.Add(name, value);
+                                msg.UserProperties.Add(name, value);
                                 break;
                         }
 
@@ -388,12 +418,27 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
 
         }
-        private BrokeredMessage ToMessage<T>(T message) where T : BaseMessage
+        static JsonSerializerSettings settings = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
+        JsonSerializer serializer = JsonSerializer.Create(settings);
+        private Message ToMessage<T>(T message) where T : BaseMessage
         {
-            var brokeredMessage = new BrokeredMessage(message);
+            var ms = new MemoryStream();
+            using (var gzip = new GZipStream(ms, CompressionMode.Compress, true))
+            {
+                using (var streamWriter = new StreamWriter(gzip))
+                {
+                    using (var jsonWriter = new JsonTextWriter(streamWriter))
+                    {
+                        serializer.Serialize(jsonWriter, message);
+                    }
+                }
+            }
+
+
+            var brokeredMessage = new Message(ms.ToArray());
             var typename = message.GetType().AssemblyQualifiedName;
-            brokeredMessage.Properties["messageType"] = typename;
-           
+            brokeredMessage.UserProperties["messageType"] = typename;
+
             try
             {
                 foreach (var promotor in promoters.GetOrAdd(message.GetType(), Factory))
@@ -404,7 +449,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,"Failed to promote properties");
+                _logger.LogError(ex, "Failed to promote properties");
             }
 
             if (options.CorrelationIdProvider != null)
@@ -422,14 +467,15 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             if (Attribute.IsDefined(message.GetType(), typeof(MessageScheduleAttribute)))
             {
                 var att = message.GetType().GetCustomAttribute<MessageScheduleAttribute>();
-                if(!string.IsNullOrEmpty(att.TimeBetweenSchedules)){
+                if (!string.IsNullOrEmpty(att.TimeBetweenSchedules))
+                {
                     timeToSend = att.GetNextWindowTime();
                 }
             }
 
             if (timeToSend.HasValue)
             {
-                var hashPart = options.ScheduledEnqueueTimeHashProvider != null ? 
+                var hashPart = options.ScheduledEnqueueTimeHashProvider != null ?
                     options.ScheduledEnqueueTimeHashProvider(message) ?? "" : "";
 
                 brokeredMessage.ScheduledEnqueueTimeUtc = timeToSend.Value;
@@ -448,41 +494,41 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             return new Guid(hashedBytes).ToString();
         }
 
-        private void options_ExceptionReceived(object sender, ExceptionReceivedEventArgs e)
+        private Task options_ExceptionReceived(ExceptionReceivedEventArgs e)
         {
-           
-            if (e.Exception != null)
-                _logger.LogError(e.Exception, "Exception recieved {action}", e.Action);
-            else
-                _logger.LogWarning("Exception recieved {action}", e.Action);
 
+            if (e.Exception != null)
+                _logger.LogError(e.Exception, "Exception recieved {action}", e.ExceptionReceivedContext.Action);
+            else
+                _logger.LogWarning("Exception recieved {action}", e.ExceptionReceivedContext.Action);
+            return Task.CompletedTask;
         }
 
         public void Dispose()
         {
             if (Client != null)
-                Client.Close();
+                Client.CloseAsync().Wait();
         }
 
-        public IMessageProcessorProviderOptions<BrokeredMessage> Options
+        public IMessageProcessorProviderOptions<Message> Options
         {
             get { return options; }
         }
 
 
-        private Task SendMessageAsync(BrokeredMessage message)
+        private Task SendMessageAsync(Message message)
         {
             if (SupportFilteredTopic)
                 return ScaledTopicClient.SendAsync(message);
             return LazyTopicClient.Value.SendAsync(message);
         }
-        private Task SendMessagesAsync(IEnumerable<BrokeredMessage> messages)
+        private Task SendMessagesAsync(IList<Message> messages)
         {
 
             if (SupportFilteredTopic)
                 return ScaledTopicClient.SendBatchAsync(messages);
 
-            return LazyTopicClient.Value.SendBatchAsync(messages);
+            return LazyTopicClient.Value.SendAsync(messages);
         }
 
         public async Task SendMessageAsync<T>(T message) where T : BaseMessage
@@ -519,37 +565,42 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
 
             }
-            await SendMessagesAsync(messages.Select(ToMessage<T>));
+            await SendMessagesAsync(messages.Select(ToMessage<T>).ToList());
         }
 
 
 
-        public Task<int> GetDeliveryCountAsync(BrokeredMessage message)
+        public Task<int> GetDeliveryCountAsync(Message message)
         {
-            return Task.FromResult(message.DeliveryCount);
+            return Task.FromResult(message.SystemProperties.DeliveryCount);
 
         }
 
-        public Task CompleteMessageAsync(BrokeredMessage message)
+        public Task CompleteMessageAsync(Message message)
         {
-            return message.CompleteAsync();
+            //    return messageReciever.CompleteAsync(message.SystemProperties.LockToken);
+            return Client.CompleteAsync(message.SystemProperties.LockToken);
+            //   return message.CompleteAsync();
         }
 
 
-        public Task MoveToDeadLetterAsync(BrokeredMessage message, string p1, string p2)
+        public Task MoveToDeadLetterAsync(Message message, string p1, string p2)
         {
-            return message.DeadLetterAsync(p1, p2);
+            return Client.DeadLetterAsync(message.SystemProperties.LockToken, p1, p2);
+            //  return message.DeadLetterAsync(p1, p2);
 
         }
 
 
-        public Task RenewLockAsync(BrokeredMessage message)
+        public Task RenewLockAsync(Message message)
         {
-            return message.RenewLockAsync();
+            return Client.RenewLockAsync(message);
+
+            //   return message.RenewLockAsync();
         }
 
 
-        public Task<string> GetMessageIdForMessageAsync(BrokeredMessage message)
+        public Task<string> GetMessageIdForMessageAsync(Message message)
         {
             return Task.FromResult(message.MessageId);
         }
@@ -570,9 +621,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
 
 
-        public Task<DateTime> GetEnqueuedTimeUtcAsync(BrokeredMessage message)
+        public Task<DateTime> GetEnqueuedTimeUtcAsync(Message message)
         {
-            return Task.FromResult(message.EnqueuedTimeUtc);
+            return Task.FromResult(message.SystemProperties.EnqueuedTimeUtc);
         }
 
 
@@ -580,8 +631,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
     }
     public class DefaultServiceBusBaseMessage : BaseMessage
     {
-        public BrokeredMessage Message { get; set; }
-        public DefaultServiceBusBaseMessage(BrokeredMessage message)
+        public Message Message { get; set; }
+        public DefaultServiceBusBaseMessage(Message message)
         {
             Message = message;
         }

@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.ServiceBus;
-using Microsoft.ServiceBus.Messaging;
-
+﻿using Microsoft.Azure.Management.ServiceBus;
+using Microsoft.Azure.ServiceBus;
+using Microsoft.Extensions.Logging;
+ 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +12,113 @@ using System.Threading.Tasks.Dataflow;
 
 namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
+    public class NamespaceManager
+    {
+        private ServiceBusConnectionStringBuilder sb;
+        private ServiceBusManagementClient client;
+        private string rg;
+
+        public string namespaceName => sb.Endpoint.Split('.', '/').Skip(2).FirstOrDefault();
+        public NamespaceManager(ServiceBusConnectionStringBuilder sb,  ServiceBusManagementClient client, string resourceGroup)
+        {
+            this.sb = sb;
+            this.client = client;
+            Address = new Uri(sb.Endpoint);
+            this.rg = resourceGroup;
+        }
+
+        public Uri Address { get;  set; }
+
+        internal static NamespaceManager CreateFromConnectionString(string conn, ServiceBusManagementClient client, string resourceGroup)
+        {
+            var sb = new ServiceBusConnectionStringBuilder(conn);
+            return new NamespaceManager(sb,client, resourceGroup);
+        }
+
+    
+
+        internal async Task<bool> TopicExistsAsync(string path)
+        {
+            if (client == null)
+                return true;
+
+            var topics =await client.Topics.ListByNamespaceAsync(rg, namespaceName);
+            return topics.Any(c => c.Name == path);
+
+          
+        }
+
+        internal async Task CreateTopicAsync(string path)
+        {
+            await client.Topics.CreateOrUpdateAsync(rg, namespaceName, path, new Microsoft.Azure.Management.ServiceBus.Models.SBTopic
+            {
+                 
+            });
+        }
+
+        internal async Task<bool> SubscriptionExistsAsync(string path, string name)
+        {
+            if (client == null)
+                return true;
+
+            var topics = await client.Subscriptions.ListByTopicAsync(rg, namespaceName, path);
+            return topics.Any(c => c.Name == path);
+        }
+
+        internal async Task CreateSubscriptionAsync(SubscriptionDescription subscriptionDescription, CorrelationFilter correlationFilter)
+        {
+            await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
+            {
+               
+
+            });
+
+            var subscriptionClient = new SubscriptionClient(sb.GetNamespaceConnectionString(),subscriptionDescription.TopicPath, subscriptionDescription.Name);
+
+            await subscriptionClient.AddRuleAsync("rule4" + subscriptionDescription.ForwardTo, correlationFilter);
+
+            await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
+            {
+                ForwardTo = subscriptionDescription.ForwardTo
+
+            });
+
+        }
+
+        internal async Task<bool> QueueExistsAsync(string path)
+        {
+            if (client == null)
+                return true;
+
+            var topics = await client.Queues.ListByNamespaceAsync(rg, namespaceName);
+            return topics.Any(c => c.Name == path);
+        }
+
+        internal async Task CreateQueueAsync(QueueDescription queue)
+        {
+            await client.Queues.CreateOrUpdateAsync(rg, namespaceName, queue.Path, new Microsoft.Azure.Management.ServiceBus.Models.SBQueue
+            {
+                 ForwardTo = queue.ForwardTo
+            });
+        }
+
+        internal async Task CreateTopicAsync(TopicDescription topic)
+        {
+            await client.Topics.CreateOrUpdateAsync(rg, namespaceName, topic.Path, new Microsoft.Azure.Management.ServiceBus.Models.SBTopic
+            {
+                
+            });
+        }
+
+        internal async Task CreateSubscriptionAsync(SubscriptionDescription subscriptionDescription)
+        {
+            await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
+            {
+                ForwardTo = subscriptionDescription.ForwardTo,
+
+            });
+        }
+    }
     public class ScaledTopicClient
     {
         private readonly ILogger<ScaledTopicClient> _logger;
@@ -49,7 +156,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         private Lazy<TopicClient>[] CreateTopicClientsForConnectionString(int count, string prefix, string conn)
         {
             var list = new List<Lazy<TopicClient>>(count);
-            var namespaceManager = NamespaceManager.CreateFromConnectionString(conn);
+         //   var namespaceManager = NamespaceManager.CreateFromConnectionString(conn);
 
             for (int i = 0, ii = count; i < ii; ++i)
             {
@@ -63,11 +170,11 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
 
             _logger.LogTrace("Creating Topic Client: {connection}, {topicname}", conn, topicname);
-
-            return TopicClient.CreateFromConnectionString(conn, topicname);
+            return new TopicClient(conn, topicname);
+          //  return TopicClient.CreateFromConnectionString(conn, topicname);
         }
 
-        internal Task SendAsync(BrokeredMessage message)
+        internal Task SendAsync(Message message)
         {
 
             int r = R.Next(_scaleCount);
@@ -90,9 +197,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                  this.LazyTopicClients[coorelationId][r] :
                  this.LazyTopicClients[DEFAULT_COORELATION_ID][r]).Value;
         }
-        internal Task SendBatchAsync(IEnumerable<BrokeredMessage> messages)
+        internal Task SendBatchAsync(IList<Message> messages)
         {
-            var postBlock = new ActionBlock<IGrouping<string, BrokeredMessage>>((group) =>
+            var postBlock = new ActionBlock<IGrouping<string, Message>>((group) =>
             {
 
                 var r = R.Next(_scaleCount);
@@ -100,7 +207,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
                 _logger.LogTrace("Posting Messages onto Topic {clientPath} '{clientNumber}'", client.Path, r);
 
-                return client.SendBatchAsync(messages);
+                return client.SendAsync(messages);
             });
 
 

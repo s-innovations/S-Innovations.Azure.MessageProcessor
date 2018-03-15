@@ -50,7 +50,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             _logger.LogInformation("Starting Message Processor Client");
 
             _startingCompletionSource = new TaskCompletionSource<int>();
-            _runnerTask = Task.Factory.StartNew(StartSubscriptionClient, TaskCreationOptions.LongRunning);
+            _runnerTask = Task.Factory.StartNew(StartSubscriptionClientAsync, TaskCreationOptions.LongRunning);
             return _startingCompletionSource.Task;
 
         }
@@ -93,12 +93,12 @@ namespace SInnovations.Azure.MessageProcessor.Core
         }
         #endregion Sending Mode
 
-        private void StartSubscriptionClient()
+        private async Task StartSubscriptionClientAsync()
         {
             try
             {
 
-                _options.Provider.StartListening(OnMessageAsync);
+                await _options.Provider.StartListeningAsync(OnMessageAsync);
                 _lastMessageRecieved = DateTimeOffset.UtcNow;
 
                 SetIdleCheckTimer();
@@ -167,7 +167,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
 
         public static TimeSpan DefaultLockRenewTimer = TimeSpan.FromSeconds(30);
-        public async Task OnMessageAsync(MessageType message)
+        public async Task OnMessageAsync( MessageType message,CancellationToken cancellationToken)
         {
 
             BaseMessage baseMessage = await _options.Provider.FromMessageAsync(message);
@@ -208,13 +208,13 @@ namespace SInnovations.Azure.MessageProcessor.Core
                   
                     _logger.LogTrace("Starting with message<{messageTypeName}> : {messageId} {@baseMessage}", baseMessage.GetType().Name, baseMessage.MessageId, baseMessage);
 
-                    if (!await MoveToDeadLetterHandlingAsync(message, baseMessage, resolver))
+                    if (!await MoveToDeadLetterHandlingAsync( message, baseMessage, resolver))
                     {
                         await ProccessMessageHandlingAsync(message, baseMessage, resolver);
 
                         _logger.LogTrace("Done with message<{messageTypeName}> : {messageId}", baseMessage.GetType().Name, baseMessage.MessageId);
 
-                        await FinalizeMessageAsync(message, baseMessage, transmitTime, sw, resolver);
+                        await FinalizeMessageAsync( message, baseMessage, transmitTime, sw, resolver);
                     }
 
                     await ReEnQueueMessageAsyncIfNeeded(baseMessage, resolver);
@@ -234,7 +234,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             }
         }
 
-        private async Task<bool> MoveToDeadLetterHandlingAsync(MessageType message, BaseMessage baseMessage, IMessageHandlerResolver resolver)
+        private async Task<bool> MoveToDeadLetterHandlingAsync( MessageType message, BaseMessage baseMessage, IMessageHandlerResolver resolver)
         {
             if (await _options.Provider.GetDeliveryCountAsync(message) > _options.Provider.Options.MaxMessageRetries)
             {
@@ -261,7 +261,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             return false;
         }
 
-        private async Task ProccessMessageHandlingAsync(MessageType message, BaseMessage baseMessage, IMessageHandlerResolver resolver)
+        private async Task ProccessMessageHandlingAsync( MessageType message, BaseMessage baseMessage, IMessageHandlerResolver resolver)
         {
             try
             {
@@ -314,7 +314,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             }
         }
 
-        private async Task FinalizeMessageAsync(MessageType message, BaseMessage baseMessage, TimeSpan transmitTime, Stopwatch sw, IMessageHandlerResolver resolver)
+        private async Task FinalizeMessageAsync( MessageType message, BaseMessage baseMessage, TimeSpan transmitTime, Stopwatch sw, IMessageHandlerResolver resolver)
         {
             try
             {

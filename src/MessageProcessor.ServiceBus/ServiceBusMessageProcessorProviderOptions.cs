@@ -1,16 +1,53 @@
 ﻿using SInnovations.Azure.MessageProcessor.Core;
 using SInnovations.Azure.MessageProcessor.Core.Serialization;
-using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Azure.ServiceBus;
+using Microsoft.Azure.Management.ServiceBus;
 
 namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
+    public class EntityDescription
+    {
+        public string Path { get; set; }
+    }
+    public class TopicDescription : EntityDescription
+    {
+         
 
-    public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<BrokeredMessage>
+        public TopicDescription(string path)
+        {
+            this.Path = path;
+        }
+    }
+    public class SubscriptionDescription : EntityDescription
+    {
+        private string v1;
+        private string v2;
+
+        public SubscriptionDescription(string topicPath, string name)
+        {
+            this.TopicPath = TopicPath;
+            this.Name = name;
+        }
+
+        public string Name { get; set; }
+        public string TopicPath { get; set; }
+        public string ForwardTo { get; set; }
+    }
+    public class QueueDescription : EntityDescription
+    {
+        public QueueDescription(string path)
+        {
+            this.Path = path;
+        }
+
+        public string ForwardTo { get; internal set; }
+    }
+    public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<Message>
     {
         public ServiceBusMessageProcessorProviderOptions()
         {
@@ -18,8 +55,8 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         }
 
         public string ConnectionString { get; set; }
+        public ServiceBusManagementClient Client { get; set; }
 
-       
 
         /// <summary>
         /// ConnectionStringProvider such messages will be pushed to respectivly to the given servicebus by its connectionstring.
@@ -105,10 +142,6 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         }
 
         public Func<QueueDescription,QueueDescription> SessionQueueDescriptionProvider { get; set; }
-
-
-
-
-       
+        public string ResourceGroup { get; set; }
     }
 }

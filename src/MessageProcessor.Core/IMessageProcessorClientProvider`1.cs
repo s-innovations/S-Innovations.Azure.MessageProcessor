@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SInnovations.Azure.MessageProcessor.Core
 {
     public interface IMessageProcessorClientProvider<MessageType> : IMessageProcessorClientProvider<IMessageProcessorProviderOptions<MessageType>, MessageType>
     {
-        void StartListening(Func<MessageType, Task> OnMessageAsync);
+        Task StartListeningAsync(Func<MessageType,CancellationToken, Task> OnMessageAsync);
         //Task SendMessageAsync(MessageType message);
         //Task SendMessagesAsync(IEnumerable<MessageType> message);
         Task SendMessageAsync<T>(T message) where T : BaseMessage;
