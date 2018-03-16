@@ -62,7 +62,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                 return true;
 
             var topics = await client.Subscriptions.ListByTopicAsync(rg, namespaceName, path);
-            return topics.Any(c => c.Name == path);
+            return topics.Any(c => c.Name == name);
         }
 
         internal async Task CreateSubscriptionAsync(SubscriptionDescription subscriptionDescription, CorrelationFilter correlationFilter)

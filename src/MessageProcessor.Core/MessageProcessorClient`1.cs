@@ -37,8 +37,8 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
         public MessageProcessorClient(ILogger<MessageProcessorClient<MessageType>> logger, MessageProcessorClientOptions<MessageType> options)
         {
-            _options = options;
-            _logger = logger;
+            _options = options ?? throw new ArgumentNullException(nameof(options));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
 
@@ -95,6 +95,11 @@ namespace SInnovations.Azure.MessageProcessor.Core
 
         private async Task StartSubscriptionClientAsync()
         {
+            if (_options == null)
+                throw new Exception("option can not be null");
+
+            if(_options.Provider == null)
+                throw new Exception("provider can not be null");
             try
             {
 
@@ -115,6 +120,7 @@ namespace SInnovations.Azure.MessageProcessor.Core
             }
             catch (Exception ex)
             {
+                _logger.LogInformation(ex, "Failed to start listener");
                 _startingCompletionSource.SetException(ex);
 
             }
