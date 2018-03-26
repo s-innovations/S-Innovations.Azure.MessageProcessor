@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SInnovations.Azure.MessageProcessor.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,4 +16,6 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
 
         public string Name { get; set; }
     }
+
+  
 }

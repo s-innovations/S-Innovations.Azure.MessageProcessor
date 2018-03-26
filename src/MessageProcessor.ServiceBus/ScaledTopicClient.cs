@@ -48,12 +48,16 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
           
         }
 
+      
+
         internal async Task CreateTopicAsync(string path)
         {
             await client.Topics.CreateOrUpdateAsync(rg, namespaceName, path, new Microsoft.Azure.Management.ServiceBus.Models.SBTopic
             {
-                 
+                   EnableExpress = true, 
             });
+
+            
         }
 
         internal async Task<bool> SubscriptionExistsAsync(string path, string name)
@@ -70,7 +74,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
             {
                
-
+                  
             });
 
             var subscriptionClient = new SubscriptionClient(sb.GetNamespaceConnectionString(),subscriptionDescription.TopicPath, subscriptionDescription.Name);
@@ -80,7 +84,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
             {
                 ForwardTo = subscriptionDescription.ForwardTo
-
+                
             });
 
         }
@@ -98,7 +102,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         {
             await client.Queues.CreateOrUpdateAsync(rg, namespaceName, queue.Path, new Microsoft.Azure.Management.ServiceBus.Models.SBQueue
             {
-                 ForwardTo = queue.ForwardTo
+                 ForwardTo = queue.ForwardTo, EnableExpress=true,
             });
         }
 
@@ -106,7 +110,7 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
         {
             await client.Topics.CreateOrUpdateAsync(rg, namespaceName, topic.Path, new Microsoft.Azure.Management.ServiceBus.Models.SBTopic
             {
-                
+                 EnableExpress = true,
             });
         }
 

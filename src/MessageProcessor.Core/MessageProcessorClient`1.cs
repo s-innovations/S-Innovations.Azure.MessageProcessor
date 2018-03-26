@@ -115,12 +115,12 @@ namespace SInnovations.Azure.MessageProcessor.Core
                 }
                 _completeBlocker.WaitOne();
 
-                _options.Provider.StopListeningAsync().Wait();
+                await _options.Provider.StopListeningAsync();
 
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex, "Failed to start listener");
+                _logger.LogError(ex, "Failed to start listener");
                 _startingCompletionSource.SetException(ex);
 
             }

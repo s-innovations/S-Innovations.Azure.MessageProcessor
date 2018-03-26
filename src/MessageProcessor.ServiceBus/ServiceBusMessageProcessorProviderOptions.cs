@@ -25,12 +25,11 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
     }
     public class SubscriptionDescription : EntityDescription
     {
-        private string v1;
-        private string v2;
+       
 
         public SubscriptionDescription(string topicPath, string name)
         {
-            this.TopicPath = TopicPath;
+            this.TopicPath = topicPath;
             this.Name = name;
         }
 

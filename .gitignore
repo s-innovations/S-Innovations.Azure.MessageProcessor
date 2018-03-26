@@ -154,3 +154,4 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+/.vs/S-Innovations.Azure.MessageProcessor/v15/Server/sqlite3
