@@ -169,6 +169,10 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                         else
                         {
                             _logger.LogInformation("Subscription {subscriptionName} Already Created", options.SubscriptionDescription.Name);
+
+                            await namespaceManager.CreateCorrelationFilterAsync(options.SubscriptionDescription, new CorrelationFilter(mapping.Map.Key));
+                          
+
                         }
 
                     }
@@ -313,8 +317,9 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
                     //var a = InnerSubscriptionClient.GetValue(client);
                     //;
                     //Client = (MessageReceiver)a.GetType().GetProperty("InnerReceiver", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(a);
-
-                    Client = new MessageReceiver(this.options.ConnectionString, $"{this.options.SubscriptionDescription.TopicPath}/{this.options.SubscriptionDescription.Name}");
+                    Client = new MessageReceiver(this.options.ConnectionString,
+                        EntityNameHelper.FormatSubscriptionPath(this.options.SubscriptionDescription.TopicPath, this.options.SubscriptionDescription.Name)
+                        );
                     Client.RegisterMessageHandler(onMessageAsync, messageOptions);
                 }
             }

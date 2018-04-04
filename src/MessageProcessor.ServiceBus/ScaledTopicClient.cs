@@ -12,6 +12,43 @@ using System.Threading.Tasks.Dataflow;
 
 namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
+
+    public class EntityDescription
+    {
+        public string Path { get; set; }
+    }
+    public class TopicDescription : EntityDescription
+    {
+
+
+        public TopicDescription(string path)
+        {
+            this.Path = path;
+        }
+    }
+    public class SubscriptionDescription : EntityDescription
+    {
+
+
+        public SubscriptionDescription(string topicPath, string name)
+        {
+            this.TopicPath = topicPath;
+            this.Name = name;
+        }
+
+        public string Name { get; set; }
+        public string TopicPath { get; set; }
+        public string ForwardTo { get; set; }
+    }
+    public class QueueDescription : EntityDescription
+    {
+        public QueueDescription(string path)
+        {
+            this.Path = path;
+        }
+
+        public string ForwardTo { get; internal set; }
+    }
     public class NamespaceManager
     {
         private ServiceBusConnectionStringBuilder sb;
@@ -88,6 +125,44 @@ namespace SInnovations.Azure.MessageProcessor.ServiceBus
             });
 
         }
+        internal async Task CreateCorrelationFilterAsync(SubscriptionDescription subscriptionDescription, CorrelationFilter correlationFilter)
+        {
+
+            await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
+            {
+                ForwardTo = null
+
+            });
+
+            // await client.Subscriptions.DeleteAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name);
+
+            //await CreateSubscriptionAsync(subscriptionDescription, correlationFilter);
+
+            //await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
+            //{
+
+
+            //});
+
+            var subscriptionClient = new SubscriptionClient(sb.GetNamespaceConnectionString(), subscriptionDescription.TopicPath, subscriptionDescription.Name);
+
+            var rules=await subscriptionClient.GetRulesAsync();
+
+            foreach (var rule in rules) {
+                await subscriptionClient.RemoveRuleAsync(rule.Name);
+                    
+                    }
+
+            await subscriptionClient.AddRuleAsync("rule4" + subscriptionDescription.ForwardTo, correlationFilter);
+
+            await client.Subscriptions.CreateOrUpdateAsync(rg, namespaceName, subscriptionDescription.TopicPath, subscriptionDescription.Name, new Microsoft.Azure.Management.ServiceBus.Models.SBSubscription
+            {
+                ForwardTo = subscriptionDescription.ForwardTo
+
+            });
+
+        }
+
 
         internal async Task<bool> QueueExistsAsync(string path)
         {

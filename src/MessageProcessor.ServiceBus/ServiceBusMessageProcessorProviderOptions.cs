@@ -10,42 +10,7 @@ using Microsoft.Azure.Management.ServiceBus;
 
 namespace SInnovations.Azure.MessageProcessor.ServiceBus
 {
-    public class EntityDescription
-    {
-        public string Path { get; set; }
-    }
-    public class TopicDescription : EntityDescription
-    {
-         
-
-        public TopicDescription(string path)
-        {
-            this.Path = path;
-        }
-    }
-    public class SubscriptionDescription : EntityDescription
-    {
-       
-
-        public SubscriptionDescription(string topicPath, string name)
-        {
-            this.TopicPath = topicPath;
-            this.Name = name;
-        }
-
-        public string Name { get; set; }
-        public string TopicPath { get; set; }
-        public string ForwardTo { get; set; }
-    }
-    public class QueueDescription : EntityDescription
-    {
-        public QueueDescription(string path)
-        {
-            this.Path = path;
-        }
-
-        public string ForwardTo { get; internal set; }
-    }
+ 
     public class ServiceBusMessageProcessorProviderOptions : IMessageProcessorProviderOptions<Message>
     {
         public ServiceBusMessageProcessorProviderOptions()
